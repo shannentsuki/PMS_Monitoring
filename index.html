@@ -170,6 +170,7 @@ html[data-theme="dark"] .pri-Critical{background:#c21d40}
 .grid2 .full{grid-column:1/-1}
 @media(max-width:600px){.grid2{grid-template-columns:1fr}}
 .next-preview{margin-top:14px;background:var(--tint);border-left:4px solid var(--accent);padding:10px 12px;border-radius:8px;font-size:13px}
+.dup-note{margin:0 0 12px;background:var(--tint);border-left:4px solid var(--warn);padding:9px 12px;border-radius:8px;font-size:12.5px}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
 .modal-foot .left{margin-right:auto}
 .done-info{padding:16px 18px 0;font-size:14px}
@@ -293,6 +294,7 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
       <select id="fCat" class="pm-only" onchange="renderTable()"></select>
       <select id="fFreq" class="pm-only" onchange="renderTable()"></select>
       <button class="btn btn-primary contacts-only hidden" onclick="openContact(-1)">+ Add Contact</button>
+      <button class="btn btn-ghost" onclick="exportView()" title="Download what's shown (with current search/filters) as an Excel file">⬇ Export to Excel</button>
     </div>
     <div class="table-wrap" id="tableWrap"><table id="tbl"></table></div>
     <div id="extra" class="extra hidden"></div>
@@ -388,11 +390,12 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
 </footer>
 
-<!-- Add / Edit PM modal -->
+<!-- Add / Edit / Duplicate PM modal -->
 <div class="modal-bg hidden" id="formModal">
   <div class="modal">
     <div class="modal-head"><h2 id="formTitle">New Preventive Maintenance</h2><button class="x" onclick="closeModal('formModal')">×</button></div>
     <form id="pmForm" onsubmit="submitForm(event)">
+      <div class="dup-note hidden" id="dupNote"></div>
       <input type="hidden" name="PM_ID">
       <div class="grid2">
         <label>Equipment / Asset *<input name="Equipment" list="dlEq" required oninput="formChanged()"></label>
@@ -505,6 +508,7 @@ const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzTlh8FGB3bKZLl
 const URL_KEY = 'pm_api_url';
 const getApiUrl = () => localStorage.getItem(URL_KEY) || DEFAULT_API_URL;
 const isCustomUrl = () => !!localStorage.getItem(URL_KEY) && localStorage.getItem(URL_KEY) !== DEFAULT_API_URL;
+const XLSX_LIB = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
 
 /* ===== Dark mode ===== */
 const ICON_MOON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -669,7 +673,7 @@ function emailHtml(bodyTpl, v, appUrl){
 
 /* ===== State & utils ===== */
 const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], settings:null, tplDirty:false, lastField:null,
-  view:'pm', sort:{key:'Next_Due', dir:1},
+  lastRows:[], view:'pm', sort:{key:'Next_Due', dir:1},
   cal:new Date(new Date().getFullYear(), new Date().getMonth(), 1), sel:null, calMap:{}};
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2,'0');
@@ -814,6 +818,7 @@ function renderTable(){
       td('Status', `<span class="badge b-${slug(p._st)}">${p._st}</span>`) +
       td('', `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
         <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
+        <button class="ic" title="Duplicate (copy to a new PM)" onclick="duplicatePM('${esc(p.PM_ID)}')">⧉</button>
         <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions') +
       '</tr>').join('') + '</tbody>';
   } else if (S.view === 'log'){
@@ -860,6 +865,7 @@ function renderTable(){
         S.missing.map((m, k) => `<button class="chip" onclick="openContact(-1, S.missing[${k}])">+ ${esc(m)}</button>`).join('')
       : (S.contacts.length ? 'All active equipment has a reminder contact.' : '');
   }
+  S.lastRows = rows;
   $('#extra').classList.toggle('hidden', S.view !== 'contacts' || !$('#extra').innerHTML);
   $('#empty').classList.toggle('hidden', rows.length > 0);
 }
@@ -871,6 +877,77 @@ function setView(v){
   document.querySelectorAll('.pm-only').forEach(el => el.classList.toggle('hidden', v !== 'pm'));
   document.querySelectorAll('.contacts-only').forEach(el => el.classList.toggle('hidden', v !== 'contacts'));
   renderTable();
+}
+
+/* ===== Export to Excel (exports exactly what's shown: current tab + search/filters/sort) ===== */
+function exportSpec(){
+  const freqText = p => p.Frequency === 'Custom' ? `Every ${p.Custom_Days || '?'} days` : (p.Frequency || '');
+  const num = v => (v === '' || v == null || isNaN(Number(v))) ? (v == null ? '' : v) : Number(v);
+  if (S.view === 'pm') return { name: 'Schedules', rows: S.lastRows, cols: [
+    ['PM ID', r => r.PM_ID], ['Equipment', r => r.Equipment], ['Tag / Asset No.', r => r.Equipment_Tag],
+    ['Location', r => r.Location], ['Category', r => r.Category], ['Task', r => r.Task],
+    ['Checklist', r => String(r.Checklist || '').split('\n').map(s => s.trim()).filter(Boolean).join('; ')],
+    ['Frequency', freqText], ['Schedule Basis', r => r.Schedule_Basis === 'Fixed' ? 'Fixed' : 'Floating'],
+    ['Start Date', r => r.Start_Date], ['Last Done', r => r.Last_Done], ['Next Due', r => r.Next_Due],
+    ['Due Status', r => r._st], ['Record Status', r => r.Status], ['Assigned To', r => r.Assigned_To],
+    ['Priority', r => r.Priority], ['Est. Hours', r => num(r.Est_Hours)],
+    ['Extra Reminder Emails', r => r.Notify_Emails], ['Notes', r => r.Notes]
+  ]};
+  if (S.view === 'log') return { name: 'History', rows: S.lastRows, cols: [
+    ['Log ID', r => r.Log_ID], ['PM ID', r => r.PM_ID], ['Equipment', r => r.Equipment], ['Task', r => r.Task],
+    ['Due Date', r => r.Due_Date], ['Date Done', r => r.Date_Done], ['Timeliness', r => r._ot === '—' ? '' : r._ot],
+    ['Performed By', r => r.Performed_By], ['Findings', r => r.Findings], ['Action Taken', r => r.Action_Taken],
+    ['Downtime (hrs)', r => num(r.Downtime_Hrs)], ['Cost (PHP)', r => num(r.Cost)]
+  ]};
+  return { name: 'Contacts', rows: S.lastRows, cols: [
+    ['Equipment', r => r.Equipment], ['Reminder Emails', r => r.Emails],
+    ['Reminders', r => r._on ? 'On' : 'Off'], ['Linked PMs', r => r._n]
+  ]};
+}
+function loadXLSX(){
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) return resolve(window.XLSX);
+    const s = document.createElement('script');
+    s.src = XLSX_LIB;
+    s.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('Excel library failed to load.'));
+    s.onerror = () => reject(new Error('Excel library failed to load.'));
+    document.head.appendChild(s);
+  });
+}
+function downloadCsv(aoa, filename){
+  const csv = aoa.map(r => r.map(v => {
+    const s = String(v == null ? '' : v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8'});   // BOM so Excel reads ₱/ñ correctly
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function exportView(){
+  if (S.view === 'email') return;
+  const spec = exportSpec();
+  if (!spec.rows.length){ toast('Nothing to export. Try clearing the search or filters.', true); return; }
+  const aoa = [spec.cols.map(c => c[0])].concat(
+    spec.rows.map(r => spec.cols.map(c => { const v = c[1](r); return v == null ? '' : v; })));
+  const base = `PMS_${spec.name}_${today()}`;
+  busy(true);
+  try {
+    const X = await loadXLSX();
+    const ws = X.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = spec.cols.map((c, i) => ({
+      wch: Math.min(50, Math.max(10, ...aoa.map(r => String(r[i] == null ? '' : r[i]).length + 2)))
+    }));
+    ws['!autofilter'] = { ref: ws['!ref'] };
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, spec.name);
+    X.writeFile(wb, base + '.xlsx');
+    toast(`Exported ${spec.rows.length} row${spec.rows.length === 1 ? '' : 's'} to Excel`);
+  } catch (e) {
+    downloadCsv(aoa, base + '.csv');
+    toast('Excel builder unavailable, so a CSV was downloaded instead (opens in Excel).');
+  } finally { busy(false); }
 }
 
 /* ===== Email tab ===== */
@@ -1065,9 +1142,10 @@ function renderUpcoming(){
     : '<div class="muted small">Nothing due in the next 14 days.</div>';
 }
 
-/* ===== Add / Edit / Delete PM ===== */
+/* ===== Add / Edit / Duplicate / Delete PM ===== */
 function openForm(id){
   const f = $('#pmForm'); f.reset();
+  $('#dupNote').classList.add('hidden');
   const p = id ? S.pms.find(x => x.PM_ID === id) : null;
   $('#formTitle').textContent = p ? 'Edit ' + p.PM_ID : 'New Preventive Maintenance';
   if (p) Object.keys(p).forEach(k => { if (f.elements[k]) f.elements[k].value = p[k] == null ? '' : p[k]; });
@@ -1076,6 +1154,20 @@ function openForm(id){
     f.elements.Priority.value = 'Medium'; f.elements.Status.value = 'Active'; f.elements.Schedule_Basis.value = 'Completion';
   }
   formChanged(); openModal('formModal');
+}
+function duplicatePM(id){
+  const p = S.pms.find(x => x.PM_ID === id); if (!p) return;
+  openForm(id);                                   // fill the form with the original's details
+  const f = $('#pmForm');
+  f.elements.PM_ID.value = '';                    // blank ID = saves as a NEW PM
+  f.elements.Last_Done.value = '';                // the new unit hasn't been serviced yet
+  f.elements.Start_Date.value = today();
+  $('#formTitle').textContent = 'Duplicate of ' + p.PM_ID;
+  const note = $('#dupNote');
+  note.innerHTML = `Copied from <b>${esc(p.PM_ID)} – ${esc(p.Equipment)}</b>. Change the equipment (and anything else), then Save to create a new PM. The original is not affected.`;
+  note.classList.remove('hidden');
+  formChanged();
+  setTimeout(() => { const eq = f.elements.Equipment; eq.focus(); eq.select(); }, 60);
 }
 function formChanged(){
   const f = $('#pmForm'), d = formData(f);
@@ -1096,8 +1188,14 @@ async function submitForm(e){
   e.preventDefault();
   const d = formData(e.target);
   if (d.Frequency !== 'Custom') d.Custom_Days = '';
+  const isNew = !d.PM_ID;
   busy(true);
-  try { await run('savePM', d); closeModal('formModal'); toast('Saved'); await load(); }
+  try {
+    const id = await run('savePM', d);
+    closeModal('formModal');
+    toast(isNew ? 'Saved as ' + id : 'Saved');
+    await load();
+  }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 async function delPM(id){
