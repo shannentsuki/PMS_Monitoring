@@ -77,6 +77,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:hover td{background:var(--hover)}
 .mono{font-family:Consolas,monospace;font-size:12px;color:var(--muted)}
 .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.emails{word-break:break-word}
 .badge,.pri{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .b-Overdue{background:#fde2e6;color:#b3001b}.b-Due-Today{background:#ffe5c7;color:#9a4f00}
 .b-Due-Soon{background:#fff3d6;color:#8a6200}.b-Scheduled{background:#f3e4e8;color:#800020}
@@ -98,6 +99,29 @@ html[data-theme="dark"] .pri-Critical{background:#c21d40}
 .ic.ok:hover{background:var(--ok);color:#fff;border-color:var(--ok)}
 .ic:hover{background:var(--tint)}.ic.del:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
 .empty{text-align:center;color:var(--muted);padding:30px}
+.extra{margin-top:14px;font-size:12px;color:var(--muted)}
+.chip{display:inline-block;padding:5px 10px;border-radius:999px;background:var(--tint);color:var(--accent);font-size:12px;font-weight:600;border:1px dashed var(--accent);cursor:pointer;margin:6px 6px 0 0;font-family:inherit}
+.chip:hover{background:var(--tint2)}
+.chip.ph{border-style:solid;border-color:var(--line);font-family:Consolas,monospace;font-size:11.5px}
+.hint{font-size:11.5px;color:var(--muted);font-weight:400}
+/* email tab */
+.set-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.set-row b{color:var(--heading)}
+.rem-status{margin-top:6px;font-size:12px;font-weight:600}
+.rem-status.on{color:var(--ok)}.rem-status.off{color:var(--muted)}.rem-status.warn{color:var(--warn)}
+.switch{position:relative;width:48px;height:28px;flex:none;display:inline-block}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--faint);border-radius:999px;cursor:pointer;transition:.2s}
+.slider:before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch input:checked + .slider{background:var(--ok)}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+#tplBody{width:100%;line-height:1.5}
+.tpl-actions,.test-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.test-row input{flex:1;min-width:180px}
+.prev-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:20px 0 8px}
+.prev-head b{color:var(--heading);font-size:13px;text-transform:uppercase;letter-spacing:.6px}
+.email-preview{background:#f4eff1;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;color-scheme:light}
+.email-subj{font-size:13px;color:#2b1a1d;margin-bottom:10px;font-family:Arial,sans-serif}
 /* calendar */
 .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .cal-head b{color:var(--heading);cursor:pointer}
@@ -181,10 +205,13 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   .kpi .l{font-size:10px}
   .kpi:nth-child(5){grid-column:1/-1}
   .card{padding:12px}
-  .tab{flex:1;text-align:center;padding:9px 8px;font-size:13px}
+  .tabs{gap:4px}
+  .tab{flex:1;text-align:center;padding:9px 4px;font-size:12.5px}
   .filters #q{flex:1 1 100%!important;min-width:0!important}
   .filters select{flex:1 1 0;min-width:0}
+  .filters .btn{flex:1 1 100%;padding:11px}
   input,select,textarea{font-size:16px}  /* stops iPhone auto-zoom on tap */
+  .tpl-actions .btn,.test-row .btn{flex:1;padding:11px}
 
   /* table becomes cards */
   .table-wrap{overflow:visible}
@@ -240,18 +267,66 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
     <div class="tabs">
       <div class="tab active" data-view="pm" onclick="setView('pm')">Schedules</div>
       <div class="tab" data-view="log" onclick="setView('log')">History</div>
+      <div class="tab" data-view="contacts" onclick="setView('contacts')">Contacts</div>
+      <div class="tab" data-view="email" onclick="setView('email')">Email</div>
     </div>
-    <div class="filters">
-      <input id="q" placeholder="Search equipment, task, tag, person…" oninput="renderTable()" style="flex:1;min-width:200px">
+    <div class="filters" id="filters">
+      <input id="q" placeholder="Search equipment, task, tag, person, email…" oninput="renderTable()" style="flex:1;min-width:200px">
       <select id="fStatus" class="pm-only" onchange="renderTable()">
         <option value="">All statuses</option><option>Overdue</option><option>Due Today</option><option>Due Soon</option>
         <option>Scheduled</option><option>On Hold</option><option>Inactive</option>
       </select>
       <select id="fCat" class="pm-only" onchange="renderTable()"></select>
       <select id="fFreq" class="pm-only" onchange="renderTable()"></select>
+      <button class="btn btn-primary contacts-only hidden" onclick="openContact(-1)">+ Add Contact</button>
     </div>
-    <div class="table-wrap"><table id="tbl"></table></div>
+    <div class="table-wrap" id="tableWrap"><table id="tbl"></table></div>
+    <div id="extra" class="extra hidden"></div>
     <div id="empty" class="empty hidden">No records found.</div>
+
+    <!-- Email tab -->
+    <div id="emailPanel" class="hidden">
+      <div class="set-row">
+        <div>
+          <b>Email reminders</b>
+          <div class="sub">Sent automatically <b>1 week</b> and <b>3 days</b> before each PM's due date, to the equipment's contacts plus any extra emails on the PM. Dates are checked each morning; nothing is sent on other days.</div>
+          <div class="rem-status" id="remStatus"></div>
+        </div>
+        <label class="switch" title="Turn email reminders on or off">
+          <input type="checkbox" id="remToggle" onchange="toggleReminders(this)"><span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="grid2" style="margin-top:16px">
+        <label class="full">App link shown in emails (optional)
+          <input id="tplUrl" placeholder="https://yourname.github.io/pms-monitoring/" oninput="tplEdited()"></label>
+        <label class="full">Subject
+          <input id="tplSubject" oninput="tplEdited()" onfocus="S.lastField=this"></label>
+        <label class="full">Message
+          <textarea id="tplBody" rows="14" oninput="tplEdited()" onfocus="S.lastField=this"></textarea></label>
+      </div>
+      <div class="sub" style="margin-top:10px">Click a field to insert it where your cursor is:</div>
+      <div id="phChips"></div>
+
+      <div class="tpl-actions">
+        <button class="btn btn-ghost" onclick="resetTemplate()">Reset to default</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-primary" onclick="saveTemplate()">Save template</button>
+      </div>
+      <div class="test-row">
+        <input id="testTo" type="email" placeholder="Send a test to… e.g. you@company.com">
+        <button class="btn btn-ghost" onclick="sendTest()">Send test email</button>
+      </div>
+
+      <div class="prev-head">
+        <b>Preview</b>
+        <select id="prevType" onchange="renderPreview()">
+          <option value="7">1-week reminder</option>
+          <option value="3">3-day reminder</option>
+        </select>
+      </div>
+      <div class="email-preview" id="emailPreview"></div>
+    </div>
   </section>
 
   <aside>
@@ -288,14 +363,14 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
 </footer>
 
-<!-- Add / Edit modal -->
+<!-- Add / Edit PM modal -->
 <div class="modal-bg hidden" id="formModal">
   <div class="modal">
     <div class="modal-head"><h2 id="formTitle">New Preventive Maintenance</h2><button class="x" onclick="closeModal('formModal')">×</button></div>
     <form id="pmForm" onsubmit="submitForm(event)">
       <input type="hidden" name="PM_ID">
       <div class="grid2">
-        <label>Equipment / Asset *<input name="Equipment" required></label>
+        <label>Equipment / Asset *<input name="Equipment" list="dlEq" required oninput="formChanged()"></label>
         <label>Equipment Tag / Asset No.<input name="Equipment_Tag"></label>
         <label>Location<input name="Location" list="dlLoc"></label>
         <label>Category<input name="Category" list="dlCat"></label>
@@ -314,6 +389,9 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
         <label>Priority<select name="Priority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
         <label>Status<select name="Status"><option>Active</option><option>On Hold</option><option>Inactive</option></select></label>
         <label>Est. Hours<input type="number" step="0.25" min="0" name="Est_Hours"></label>
+        <label class="full">Extra reminder emails for this PM (optional)
+          <input name="Notify_Emails" placeholder="e.g. supervisor@company.com, tech@company.com">
+          <span class="hint" id="contactHint"></span></label>
         <label class="full">Notes<textarea name="Notes" rows="2"></textarea></label>
       </div>
       <div class="next-preview" id="nextPreview"></div>
@@ -349,6 +427,26 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   </div>
 </div>
 
+<!-- Asset contact modal -->
+<div class="modal-bg hidden" id="contactModal">
+  <div class="modal modal-sm">
+    <div class="modal-head"><h2 id="contactTitle">New Asset Contact</h2><button class="x" onclick="closeModal('contactModal')">×</button></div>
+    <form id="contactForm" onsubmit="submitContact(event)">
+      <input type="hidden" name="Original_Equipment">
+      <div class="grid2">
+        <label class="full">Equipment / Asset *<input name="Equipment" list="dlEq" required></label>
+        <label class="full">Email addresses *
+          <textarea name="Emails" rows="4" required placeholder="One per line, or separated by commas"></textarea></label>
+      </div>
+      <p class="muted small" style="margin:10px 0 0">When email reminders are on, these addresses are emailed 1 week and 3 days before each PM of this equipment is due.</p>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('contactModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Web App URL modal -->
 <div class="modal-bg hidden" id="urlModal">
   <div class="modal modal-sm">
@@ -367,7 +465,7 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   </div>
 </div>
 
-<datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist>
+<datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist><datalist id="dlEq"></datalist>
 <div class="busy hidden" id="busy"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -502,8 +600,46 @@ function computeNextDue(pm, prevDue){
   return addFreq(pm.Last_Done, pm.Frequency, pm.Custom_Days, 1);
 }
 
+/* ===== Email template rendering (mirrors Code.gs) ===== */
+const PLACEHOLDERS = ['Equipment','Equipment_Tag','Location','Category','Task','PM_ID','Frequency',
+  'Assigned_To','Priority','Checklist','Notes','Due_Date','Due_In','Days_Left','Reminder_Type','App_Link'];
+const SAMPLE_PM = { PM_ID:'PM-0001', Equipment:'Aircon Unit 3', Equipment_Tag:'AC-03', Location:'Admin Office',
+  Category:'HVAC / Aircon', Task:'Clean filters and check refrigerant pressure', Frequency:'Quarterly',
+  Assigned_To:'Technician 1', Priority:'Medium', Notes:'', Checklist:'Turn off power\nClean filter\nCheck for leaks' };
+function fillTemplate(tpl, v){
+  return String(tpl || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => (k in v ? v[k] : m));
+}
+function emailVars(pm, days, dueLabel, appUrl, stage){
+  const dash = x => (x === '' || x == null) ? '—' : String(x);
+  const items = String(pm.Checklist || '').split('\n').map(s => s.trim()).filter(Boolean);
+  stage = stage || (days >= 4 ? '7' : '3');
+  return {
+    Equipment: dash(pm.Equipment), Equipment_Tag: dash(pm.Equipment_Tag), Location: dash(pm.Location),
+    Category: dash(pm.Category), Task: dash(pm.Task), PM_ID: dash(pm.PM_ID),
+    Frequency: pm.Frequency === 'Custom' ? 'Every ' + pm.Custom_Days + ' days' : dash(pm.Frequency),
+    Assigned_To: dash(pm.Assigned_To), Priority: dash(pm.Priority), Notes: dash(pm.Notes),
+    Checklist: items.length ? items.map(i => '• ' + i).join('\n') : '—',
+    Due_Date: dueLabel, Days_Left: String(days),
+    Due_In: days === 0 ? 'today' : 'in ' + days + ' day' + (days === 1 ? '' : 's'),
+    Reminder_Type: stage === '7' ? '1-week' : '3-day',
+    App_Link: appUrl || ''
+  };
+}
+function emailHtml(bodyTpl, v, appUrl){
+  const h = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const body = h(fillTemplate(bodyTpl, v)).replace(/\n/g, '<br>');
+  return '<div style="font-family:Arial,sans-serif;max-width:560px;border:1px solid #eadadd;border-radius:10px;overflow:hidden;background:#ffffff">' +
+    '<div style="background:#800020;color:#ffffff;padding:16px 20px">' +
+      '<div style="font-size:12px;opacity:.85">PMS Monitoring · ' + h(v.Reminder_Type) + ' reminder</div>' +
+      '<div style="font-size:19px;font-weight:bold;margin-top:4px">' + h(v.Equipment) + '</div></div>' +
+    '<div style="padding:16px 20px;font-size:14px;line-height:1.6;color:#2b1a1d">' + body +
+      (appUrl ? '<p style="margin:20px 0 4px"><a href="' + h(appUrl) + '" style="background:#800020;color:#ffffff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block">Open PMS Monitoring</a></p>' : '') +
+    '</div></div>';
+}
+
 /* ===== State & utils ===== */
-const S = {pms:[], logs:[], lists:{}, view:'pm', sort:{key:'Next_Due', dir:1},
+const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], settings:null, tplDirty:false, lastField:null,
+  view:'pm', sort:{key:'Next_Due', dir:1},
   cal:new Date(new Date().getFullYear(), new Date().getMonth(), 1), sel:null, calMap:{}};
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2,'0');
@@ -514,8 +650,11 @@ const daysUntil = s => Math.round((toDate(s) - toDate(today())) / 864e5);
 const nice = s => s ? toDate(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const slug = s => String(s).replace(/\s+/g,'-');
+const norm = s => String(s == null ? '' : s).trim().toLowerCase();
 const uniq = a => [...new Set(a.filter(Boolean).map(String))].sort();
 const formData = f => Object.fromEntries(new FormData(f).entries());
+const findContact = name => S.contacts.find(c => norm(c.Equipment) === norm(name));
+const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s).trim());
 const td = (label, html, cls) => `<td data-label="${label}"${cls ? ` class="${cls}"` : ''}><div class="cv">${html}</div></td>`;
 
 function status(p){
@@ -539,7 +678,7 @@ async function load(){
   busy(true);
   try {
     const d = await run('getData');
-    S.pms = d.pms; S.logs = d.logs; S.lists = d.lists;
+    S.pms = d.pms; S.logs = d.logs; S.lists = d.lists; S.contacts = d.contacts || []; S.settings = d.settings || null;
     fillLists(); renderAll();
   } catch(e){ toast(e.message || e, true); }
   finally { busy(false); }
@@ -550,8 +689,10 @@ function fillLists(){
   const cats = uniq([...(S.lists.Categories||[]), ...S.pms.map(p => p.Category)]);
   const per  = uniq([...(S.lists.Personnel||[]), ...S.pms.map(p => p.Assigned_To)]);
   const loc  = uniq([...(S.lists.Locations||[]), ...S.pms.map(p => p.Location)]);
+  const eq   = uniq([...S.pms.map(p => p.Equipment), ...S.contacts.map(c => c.Equipment)]);
   const opts = a => a.map(v => `<option value="${esc(v)}">`).join('');
-  $('#dlCat').innerHTML = opts(cats); $('#dlPer').innerHTML = opts(per); $('#dlLoc').innerHTML = opts(loc);
+  $('#dlCat').innerHTML = opts(cats); $('#dlPer').innerHTML = opts(per);
+  $('#dlLoc').innerHTML = opts(loc); $('#dlEq').innerHTML = opts(eq);
   const keep = $('#fCat').value;
   $('#fCat').innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
   $('#fCat').value = keep;
@@ -600,12 +741,21 @@ function head(cols, actions){
 }
 
 function renderTable(){
+  const isEmail = S.view === 'email';
+  $('#filters').classList.toggle('hidden', isEmail);
+  $('#tableWrap').classList.toggle('hidden', isEmail);
+  $('#emailPanel').classList.toggle('hidden', !isEmail);
+  if (isEmail){
+    $('#empty').classList.add('hidden'); $('#extra').classList.add('hidden');
+    renderEmailPanel();
+    return;
+  }
   const q = $('#q').value.trim().toLowerCase();
   let rows;
   if (S.view === 'pm'){
     const fs = $('#fStatus').value, fc = $('#fCat').value, ff = $('#fFreq').value;
     rows = S.pms.map(p => Object.assign({_st: status(p)}, p)).filter(p =>
-      (!q || [p.PM_ID,p.Equipment,p.Equipment_Tag,p.Task,p.Location,p.Assigned_To,p.Category].join(' ').toLowerCase().includes(q)) &&
+      (!q || [p.PM_ID,p.Equipment,p.Equipment_Tag,p.Task,p.Location,p.Assigned_To,p.Category,p.Notify_Emails].join(' ').toLowerCase().includes(q)) &&
       (!fs || p._st === fs || (fs === 'Due Soon' && p._st === 'Due Today')) &&
       (!fc || p.Category === fc) && (!ff || p.Frequency === ff));
     sortRows(rows);
@@ -624,7 +774,7 @@ function renderTable(){
         <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
         <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions') +
       '</tr>').join('') + '</tbody>';
-  } else {
+  } else if (S.view === 'log'){
     rows = S.logs.map(l => Object.assign({_ot: !l.Due_Date ? '—' : (l.Date_Done <= l.Due_Date ? 'On time' : 'Late')}, l))
       .filter(l => !q || [l.Log_ID,l.PM_ID,l.Equipment,l.Task,l.Performed_By,l.Findings,l.Action_Taken].join(' ').toLowerCase().includes(q));
     sortRows(rows);
@@ -640,16 +790,132 @@ function renderTable(){
       td('Cost', l.Cost !== '' && l.Cost != null ? '₱' + Number(l.Cost).toLocaleString() : '—') +
       td('Timeliness', l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`) +
       '</tr>').join('') + '</tbody>';
+  } else {
+    rows = S.contacts.map((c, i) => Object.assign({_i: i,
+        _n: S.pms.filter(p => norm(p.Equipment) === norm(c.Equipment)).length}, c))
+      .filter(c => !q || [c.Equipment, c.Emails].join(' ').toLowerCase().includes(q));
+    sortRows(rows);
+    const cols = [['Equipment','Equipment / Asset'],['Emails','Reminder Emails'],['_n','Linked PMs']];
+    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(c => '<tr>' +
+      td('Equipment', `<b>${esc(c.Equipment)}</b>`) +
+      td('Emails', `<span class="emails">${esc(c.Emails)}</span>`) +
+      td('Linked PMs', c._n ? String(c._n) : '<span class="muted">0</span>') +
+      td('', `<button class="ic" title="Edit" onclick="openContact(${c._i})">✎</button>
+        <button class="ic del" title="Delete" onclick="delContact(${c._i})">🗑</button>`, 'actions') +
+      '</tr>').join('') + '</tbody>';
+    S.missing = uniq(S.pms.filter(p => p.Status === 'Active' && !findContact(p.Equipment)).map(p => p.Equipment));
+    $('#extra').innerHTML = S.missing.length
+      ? `Active equipment with no reminder contact yet (tap to add):<br>` +
+        S.missing.map((m, k) => `<button class="chip" onclick="openContact(-1, S.missing[${k}])">+ ${esc(m)}</button>`).join('')
+      : (S.contacts.length ? 'All active equipment has a reminder contact.' : '');
   }
+  $('#extra').classList.toggle('hidden', S.view !== 'contacts' || !$('#extra').innerHTML);
   $('#empty').classList.toggle('hidden', rows.length > 0);
 }
 
 function setView(v){
-  if (S.view !== v) S.sort = v === 'pm' ? {key:'Next_Due', dir:1} : {key:'Date_Done', dir:-1};
+  if (S.view !== v) S.sort = v === 'pm' ? {key:'Next_Due', dir:1} : v === 'log' ? {key:'Date_Done', dir:-1} : {key:'Equipment', dir:1};
   S.view = v;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
   document.querySelectorAll('.pm-only').forEach(el => el.classList.toggle('hidden', v !== 'pm'));
+  document.querySelectorAll('.contacts-only').forEach(el => el.classList.toggle('hidden', v !== 'contacts'));
   renderTable();
+}
+
+/* ===== Email tab ===== */
+function renderEmailPanel(){
+  const st = S.settings;
+  if (!st){ $('#remStatus').textContent = 'Loading settings…'; return; }
+  $('#remToggle').checked = st.enabled;
+  const noRecip = S.pms.filter(p => p.Status === 'Active' && !findContact(p.Equipment) &&
+    !String(p.Notify_Emails || '').trim()).length;
+  const el = $('#remStatus');
+  if (st.enabled && st.running){
+    el.className = 'rem-status on';
+    el.textContent = '● On · reminders will be sent 1 week and 3 days before due dates' +
+      (noRecip ? ` · ${noRecip} active PM${noRecip > 1 ? 's have' : ' has'} no email recipients yet` : '');
+  } else if (st.enabled){
+    el.className = 'rem-status warn';
+    el.textContent = '● On, but the background check is missing. Switch it off and on again.';
+  } else {
+    el.className = 'rem-status off';
+    el.textContent = '○ Off · no reminder emails will be sent';
+  }
+  if (!S.tplDirty){
+    $('#tplSubject').value = st.subject;
+    $('#tplBody').value = st.body;
+    $('#tplUrl').value = st.appUrl || '';
+  }
+  if (!$('#phChips').innerHTML){
+    $('#phChips').innerHTML = PLACEHOLDERS.map(k =>
+      `<button type="button" class="chip ph" onmousedown="event.preventDefault()" onclick="insertPh('${k}')">{{${k}}}</button>`).join('');
+  }
+  renderPreview();
+}
+function tplEdited(){ S.tplDirty = true; renderPreview(); }
+function insertPh(k){
+  const el = S.lastField || $('#tplBody');
+  const tag = '{{' + k + '}}';
+  const s = el.selectionStart != null ? el.selectionStart : el.value.length;
+  const e = el.selectionEnd != null ? el.selectionEnd : s;
+  el.value = el.value.slice(0, s) + tag + el.value.slice(e);
+  el.focus();
+  el.selectionStart = el.selectionEnd = s + tag.length;
+  tplEdited();
+}
+function previewPm(){
+  return S.pms.filter(p => p.Status === 'Active').sort((a, b) => String(a.Next_Due).localeCompare(String(b.Next_Due)))[0] || SAMPLE_PM;
+}
+function renderPreview(){
+  const days = Number($('#prevType').value) || 7;
+  const d = new Date(); d.setDate(d.getDate() + days);
+  const dueLabel = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+  const appUrl = $('#tplUrl').value.trim();
+  const v = emailVars(previewPm(), days, dueLabel, appUrl);
+  const subj = fillTemplate($('#tplSubject').value, v).replace(/\s*\n\s*/g, ' ');
+  $('#emailPreview').innerHTML = `<div class="email-subj"><b>Subject:</b> ${esc(subj)}</div>` +
+    emailHtml($('#tplBody').value, v, appUrl);
+}
+async function toggleReminders(el){
+  const on = el.checked;
+  busy(true);
+  try {
+    S.settings = await run('setReminders', on);
+    toast(on ? 'Email reminders turned ON' : 'Email reminders turned OFF');
+  } catch(err){ el.checked = !on; toast(err.message || err, true); }
+  finally { busy(false); renderEmailPanel(); }
+}
+async function saveTemplate(){
+  busy(true);
+  try {
+    S.settings = await run('saveEmailSettings', {
+      subject: $('#tplSubject').value, body: $('#tplBody').value, appUrl: $('#tplUrl').value
+    });
+    S.tplDirty = false;
+    toast('Email template saved');
+  } catch(err){ toast(err.message || err, true); }
+  finally { busy(false); renderEmailPanel(); }
+}
+function resetTemplate(){
+  if (!S.settings) return;
+  if (!confirm('Replace the subject and message with the default template?')) return;
+  $('#tplSubject').value = S.settings.defaults.subject;
+  $('#tplBody').value = S.settings.defaults.body;
+  tplEdited();
+  toast('Default restored. Click "Save template" to keep it.');
+}
+async function sendTest(){
+  const to = $('#testTo').value.trim();
+  if (!validEmail(to)){ toast('Enter a valid email address for the test.', true); $('#testTo').focus(); return; }
+  busy(true);
+  try {
+    const sentTo = await run('sendTestEmail', {
+      to: to, subject: $('#tplSubject').value, body: $('#tplBody').value,
+      appUrl: $('#tplUrl').value, days: Number($('#prevType').value) || 7
+    });
+    toast('Test email sent to ' + sentTo);
+  } catch(err){ toast(err.message || err, true); }
+  finally { busy(false); }
 }
 
 /* ===== Calendar ===== */
@@ -718,7 +984,7 @@ function renderUpcoming(){
     : '<div class="muted small">Nothing due in the next 14 days.</div>';
 }
 
-/* ===== Add / Edit / Delete ===== */
+/* ===== Add / Edit / Delete PM ===== */
 function openForm(id){
   const f = $('#pmForm'); f.reset();
   const p = id ? S.pms.find(x => x.PM_ID === id) : null;
@@ -734,6 +1000,10 @@ function formChanged(){
   const f = $('#pmForm'), d = formData(f);
   $('#customWrap').classList.toggle('hidden', d.Frequency !== 'Custom');
   f.elements.Custom_Days.required = d.Frequency === 'Custom';
+  const c = d.Equipment ? findContact(d.Equipment) : null;
+  $('#contactHint').textContent = !d.Equipment ? ''
+    : c ? 'Asset contacts also notified: ' + c.Emails
+    : 'No asset contact yet for this equipment. Add one in the Contacts tab, or enter emails above.';
   if (!d.Start_Date){ $('#nextPreview').innerHTML = ''; return; }
   const nx = computeNextDue(d);
   $('#nextPreview').innerHTML = `Next due: <b>${nice(nx)}</b> &nbsp;→ then ${nice(addFreq(nx, d.Frequency, d.Custom_Days, 1))}, ${nice(addFreq(nx, d.Frequency, d.Custom_Days, 2))} …`;
@@ -751,6 +1021,31 @@ async function delPM(id){
   if (!confirm(`Delete ${id} – ${p ? p.Equipment : ''}?\nIts history log will be kept.`)) return;
   busy(true);
   try { await run('deletePM', id); toast('Deleted'); await load(); }
+  catch(err){ toast(err.message || err, true); busy(false); }
+}
+
+/* ===== Contacts ===== */
+function openContact(i, prefill){
+  const f = $('#contactForm'); f.reset();
+  const c = i >= 0 ? S.contacts[i] : null;
+  $('#contactTitle').textContent = c ? 'Edit Asset Contact' : 'New Asset Contact';
+  f.elements.Original_Equipment.value = c ? c.Equipment : '';
+  f.elements.Equipment.value = c ? c.Equipment : (prefill || '');
+  f.elements.Emails.value = c ? String(c.Emails).split(/\s*,\s*/).join('\n') : '';
+  openModal('contactModal');
+}
+async function submitContact(e){
+  e.preventDefault();
+  const d = formData(e.target);
+  busy(true);
+  try { await run('saveContact', d); closeModal('contactModal'); toast('Contact saved'); await load(); }
+  catch(err){ toast(err.message || err, true); busy(false); }
+}
+async function delContact(i){
+  const c = S.contacts[i]; if (!c) return;
+  if (!confirm(`Remove reminder contacts for "${c.Equipment}"?`)) return;
+  busy(true);
+  try { await run('deleteContact', c.Equipment); toast('Contact removed'); await load(); }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 
