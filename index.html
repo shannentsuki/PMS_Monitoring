@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PM Monitor</title>
+<style>
+:root{--maroon:#800000;--burgundy:#800020;--wine:#5c0a1e;--deep:#3d0612;--rose:#f7ecee;--rose2:#ecd3d9;
+--ink:#2b1a1d;--muted:#7a6268;--line:#eadadd;--ok:#2e7d4f;--warn:#b86e00;--bad:#b3001b}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#faf5f6;color:var(--ink);padding-bottom:80px}
+header{background:linear-gradient(120deg,var(--deep),var(--burgundy) 55%,var(--maroon));color:#fff;padding:14px 24px;
+display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(61,6,18,.35)}
+header h1{font-size:21px;margin:0;letter-spacing:.5px}
+header small{opacity:.8;font-size:12px}
+.hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit}
+.btn-primary{background:var(--burgundy);color:#fff}.btn-primary:hover{background:var(--wine)}
+.btn-light{background:#fff;color:var(--burgundy)}.btn-light:hover{background:var(--rose)}
+.btn-outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+.btn-outline:hover{background:rgba(255,255,255,.12)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{background:var(--rose)}
+main{padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;max-width:1500px;margin:auto}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;grid-column:1/-1}
+@media(max-width:800px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border-radius:12px;padding:14px 16px;border-left:5px solid var(--burgundy);box-shadow:0 1px 4px rgba(60,0,15,.08);cursor:pointer;transition:.15s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi .v{font-size:26px;font-weight:700;color:var(--wine)}
+.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+.kpi.bad{border-color:var(--bad)}.kpi.bad .v{color:var(--bad)}
+.kpi.warn{border-color:var(--warn)}.kpi.warn .v{color:var(--warn)}
+.kpi.ok{border-color:var(--ok)}.kpi.ok .v{color:var(--ok)}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(60,0,15,.08);padding:16px}
+.card h3{margin:0 0 10px;font-size:13px;color:var(--wine);text-transform:uppercase;letter-spacing:.7px}
+aside{display:flex;flex-direction:column;gap:16px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{padding:7px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;font-size:14px}
+.tab.active{background:var(--burgundy);color:#fff}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+input,select,textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff;color:var(--ink);font-weight:400}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--rose2);border-color:var(--burgundy)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;background:var(--rose);color:var(--wine);padding:9px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;user-select:none}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:hover td{background:#fdf8f9}
+.mono{font-family:Consolas,monospace;font-size:12px;color:var(--muted)}
+.sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.badge,.pri{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-Overdue{background:#fde2e6;color:var(--bad)}.b-Due-Today{background:#ffe5c7;color:#9a4f00}
+.b-Due-Soon{background:#fff3d6;color:#8a6200}.b-Scheduled{background:#f3e4e8;color:var(--burgundy)}
+.b-On-Hold{background:#ece8e9;color:#6b5b5f}.b-Inactive{background:#f2f2f2;color:#999}
+.b-On-time{background:#e3f3ea;color:var(--ok)}.b-Late{background:#fde2e6;color:var(--bad)}
+.pri-Critical{background:var(--deep);color:#fff}.pri-High{background:#a0283f;color:#fff}
+.pri-Medium{background:#f3e4e8;color:var(--burgundy)}.pri-Low{background:#f6f1f2;color:var(--muted)}
+.actions{white-space:nowrap}
+.ic{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--burgundy);font-size:14px}
+.ic.ok:hover{background:var(--ok);color:#fff;border-color:var(--ok)}
+.ic:hover{background:var(--rose)}.ic.del:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:30px}
+/* calendar */
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cal-head b{color:var(--wine);cursor:pointer}
+.cal-nav{background:none;border:none;font-size:20px;cursor:pointer;color:var(--burgundy);padding:0 10px;border-radius:6px}
+.cal-nav:hover{background:var(--rose)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:12px}
+.cal .dow{color:var(--muted);font-weight:700;padding:4px 0;font-size:11px}
+.cal .day{aspect-ratio:1;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid transparent}
+.cal .day:hover{background:var(--rose)}
+.cal .day.other{color:#cdbcc0}
+.cal .day.today{border-color:var(--burgundy);font-weight:700}
+.cal .day.sel{background:var(--burgundy);color:#fff}
+.dots{display:flex;gap:2px;height:6px;margin-top:2px}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:4px}
+.dl-title{font-weight:700;color:var(--wine);margin-top:14px;font-size:13px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;border-left:4px solid var(--burgundy);background:#fcf7f8;margin-top:8px;font-size:13px}
+.item.od{border-color:var(--bad);background:#fdf0f2}.item.done{border-color:var(--ok);background:#f3faf6}
+#upList{max-height:420px;overflow-y:auto}
+.muted{color:var(--muted)}.small{font-size:12px}
+/* modals */
+.modal-bg{position:fixed;inset:0;background:rgba(40,5,14,.55);display:flex;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto;z-index:50}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:720px;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden}
+.modal-sm{max-width:560px}
+.modal-head{background:linear-gradient(120deg,var(--wine),var(--burgundy));color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+.modal-head h2{margin:0;font-size:17px}
+.x{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1}
+.modal form{padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2 label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--wine)}
+.grid2 .full{grid-column:1/-1}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.next-preview{margin-top:14px;background:var(--rose);border-left:4px solid var(--burgundy);padding:10px 12px;border-radius:8px;font-size:13px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+.modal-foot .left{margin-right:auto}
+.done-info{padding:16px 18px 0;font-size:14px}
+.cl-title{font-size:12px;font-weight:700;color:var(--wine);margin-bottom:6px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 8px;border-radius:8px;background:var(--rose);margin-bottom:5px;cursor:pointer}
+#doneChecklist{margin-bottom:14px}
+.hidden{display:none!important}
+.busy{position:fixed;inset:0;background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;z-index:60}
+.spinner{width:42px;height:42px;border:4px solid var(--rose2);border-top-color:var(--burgundy);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--wine);color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:70;font-size:14px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.err{background:var(--bad)}
+/* connection status */
+.conn{position:fixed;left:16px;bottom:16px;z-index:40;background:#fff;border:1px solid var(--line);border-left:4px solid var(--burgundy);
+border-radius:10px;padding:8px 12px;box-shadow:0 4px 14px rgba(60,0,15,.14);font-size:12px;max-width:calc(100vw - 32px)}
+.conn-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;flex:none}
+.conn-dot.ok{background:#2fa36b;box-shadow:0 0 0 3px rgba(47,163,107,.18)}
+.conn-dot.busy{background:var(--warn);animation:pulse 1s infinite}
+.conn-dot.err{background:var(--bad);box-shadow:0 0 0 3px rgba(179,0,27,.15)}
+@keyframes pulse{50%{opacity:.3}}
+.conn-sub{color:var(--muted)}
+.conn-tag{background:var(--rose);color:var(--burgundy);font-weight:700;font-size:10px;padding:1px 6px;border-radius:999px}
+.conn-link{color:var(--burgundy);font-weight:600;text-decoration:none;display:inline-block;margin-top:3px}
+.conn-link:hover{text-decoration:underline}
+.url-err{margin-top:8px;color:var(--bad);font-size:12px}
+.url-mode{margin:10px 0 0;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div><h1>PM Monitor</h1><small>Preventive Maintenance Tracking</small></div>
+  <div class="hdr-actions">
+    <button class="btn btn-outline" onclick="load()">↻ Refresh</button>
+    <button class="btn btn-light" onclick="openForm()">+ New PM</button>
+  </div>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <div class="tabs">
+      <div class="tab active" data-view="pm" onclick="setView('pm')">Schedules</div>
+      <div class="tab" data-view="log" onclick="setView('log')">Maintenance History</div>
+    </div>
+    <div class="filters">
+      <input id="q" placeholder="Search equipment, task, tag, person…" oninput="renderTable()" style="flex:1;min-width:200px">
+      <select id="fStatus" class="pm-only" onchange="renderTable()">
+        <option value="">All statuses</option><option>Overdue</option><option>Due Today</option><option>Due Soon</option>
+        <option>Scheduled</option><option>On Hold</option><option>Inactive</option>
+      </select>
+      <select id="fCat" class="pm-only" onchange="renderTable()"></select>
+      <select id="fFreq" class="pm-only" onchange="renderTable()"></select>
+    </div>
+    <div class="table-wrap"><table id="tbl"></table></div>
+    <div id="empty" class="empty hidden">No records found.</div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <div class="cal-head">
+        <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
+        <b id="calTitle" title="Go to current month" onclick="shiftMonth(0)"></b>
+        <button class="cal-nav" onclick="shiftMonth(1)">›</button>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--bad)"></i>Overdue</span>
+        <span><i class="dot" style="background:var(--burgundy)"></i>Scheduled</span>
+        <span><i class="dot" style="background:var(--ok)"></i>Completed</span>
+      </div>
+      <div id="dayList"></div>
+    </div>
+    <div class="card">
+      <h3>Overdue &amp; Next 14 Days</h3>
+      <div id="upList"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- Add / Edit modal -->
+<div class="modal-bg hidden" id="formModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="formTitle">New Preventive Maintenance</h2><button class="x" onclick="closeModal('formModal')">×</button></div>
+    <form id="pmForm" onsubmit="submitForm(event)">
+      <input type="hidden" name="PM_ID">
+      <div class="grid2">
+        <label>Equipment / Asset *<input name="Equipment" required></label>
+        <label>Equipment Tag / Asset No.<input name="Equipment_Tag"></label>
+        <label>Location<input name="Location" list="dlLoc"></label>
+        <label>Category<input name="Category" list="dlCat"></label>
+        <label class="full">PM Task *<input name="Task" required placeholder="e.g. Clean filters and check refrigerant pressure"></label>
+        <label class="full">Checklist (one item per line)<textarea name="Checklist" rows="4" placeholder="Turn off power&#10;Clean filter&#10;Check for leaks"></textarea></label>
+        <label>Frequency<select name="Frequency" onchange="formChanged()"></select></label>
+        <label id="customWrap" class="hidden">Every how many days?<input type="number" min="1" name="Custom_Days" oninput="formChanged()"></label>
+        <label>Schedule Basis
+          <select name="Schedule_Basis" onchange="formChanged()">
+            <option value="Completion">Floating – count from completion date</option>
+            <option value="Fixed">Fixed – keep original calendar</option>
+          </select></label>
+        <label>Start / First Due Date *<input type="date" name="Start_Date" required onchange="formChanged()"></label>
+        <label>Last Done<input type="date" name="Last_Done" onchange="formChanged()"></label>
+        <label>Assigned To<input name="Assigned_To" list="dlPer"></label>
+        <label>Priority<select name="Priority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
+        <label>Status<select name="Status"><option>Active</option><option>On Hold</option><option>Inactive</option></select></label>
+        <label>Est. Hours<input type="number" step="0.25" min="0" name="Est_Hours"></label>
+        <label class="full">Notes<textarea name="Notes" rows="2"></textarea></label>
+      </div>
+      <div class="next-preview" id="nextPreview"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('formModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Mark as done modal -->
+<div class="modal-bg hidden" id="doneModal">
+  <div class="modal">
+    <div class="modal-head"><h2>Record Completion</h2><button class="x" onclick="closeModal('doneModal')">×</button></div>
+    <div class="done-info" id="doneInfo"></div>
+    <form id="doneForm" onsubmit="submitDone(event)">
+      <input type="hidden" name="PM_ID">
+      <div id="doneChecklist"></div>
+      <div class="grid2">
+        <label>Date Completed *<input type="date" name="Date_Done" required></label>
+        <label>Performed By<input name="Performed_By" list="dlPer"></label>
+        <label class="full">Findings<textarea name="Findings" rows="2"></textarea></label>
+        <label class="full">Action Taken<textarea name="Action_Taken" rows="2"></textarea></label>
+        <label>Downtime (hrs)<input type="number" step="0.25" min="0" name="Downtime_Hrs"></label>
+        <label>Cost (₱)<input type="number" step="0.01" min="0" name="Cost"></label>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('doneModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">✓ Mark as Done</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Web App URL modal -->
+<div class="modal-bg hidden" id="urlModal">
+  <div class="modal modal-sm">
+    <div class="modal-head"><h2>Web App URL</h2><button class="x" onclick="closeModal('urlModal')">×</button></div>
+    <form id="urlForm" onsubmit="saveUrl(event)">
+      <p class="muted small" style="margin:0 0 10px">Paste the <b>/exec</b> URL from your Apps Script deployment (Deploy → Manage deployments).</p>
+      <input id="urlInput" style="width:100%" placeholder="https://script.google.com/macros/s/…/exec" required>
+      <div id="urlErr" class="url-err hidden"></div>
+      <p class="url-mode" id="urlMode"></p>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost left" onclick="resetUrl()">Use default</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('urlModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Connect</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Connection status (bottom-left) -->
+<div class="conn" id="conn">
+  <div class="conn-row" id="connRow">
+    <i class="conn-dot" id="connDot"></i><b id="connLabel">Not connected</b><span class="conn-sub" id="connSub"></span>
+    <span class="conn-tag hidden" id="connTag">Custom URL</span>
+  </div>
+  <a href="#" class="conn-link" onclick="openUrlModal();return false;">Set Web App URL</a>
+</div>
+
+<datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist>
+<div class="busy hidden" id="busy"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== CONFIG: default connection for everyone ===== */
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzTlh8FGB3bKZLl7mPbrsOy11P_FxRhxnPQYG7XVzUX1qmywW_ocdu2734k5xYzNRylEw/exec';
+const URL_KEY = 'pm_api_url';
+const getApiUrl = () => localStorage.getItem(URL_KEY) || DEFAULT_API_URL;
+const isCustomUrl = () => !!localStorage.getItem(URL_KEY) && localStorage.getItem(URL_KEY) !== DEFAULT_API_URL;
+
+/* ===== Connection status ===== */
+const CONN = {state:'idle', last:null, msg:''};
+function setConn(state, msg){
+  CONN.state = state; CONN.msg = msg || '';
+  if (state === 'ok') CONN.last = Date.now();
+  renderConn();
+}
+function ago(t){
+  const s = Math.round((Date.now() - t) / 1000);
+  if (s < 45) return 'just now';
+  const m = Math.round(s / 60); if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60); return h + ' hr' + (h > 1 ? 's' : '') + ' ago';
+}
+function renderConn(){
+  const labels = {
+    idle: getApiUrl() ? 'Not connected' : 'No Web App URL set',
+    busy: 'Syncing…', ok: 'Connected', err: 'Connection error'
+  };
+  document.getElementById('connDot').className = 'conn-dot ' + CONN.state;
+  document.getElementById('connLabel').textContent = labels[CONN.state];
+  document.getElementById('connSub').textContent =
+    CONN.last && CONN.state !== 'busy' ? '· Updated ' + ago(CONN.last) : '';
+  document.getElementById('connTag').classList.toggle('hidden', !isCustomUrl());
+  document.getElementById('connRow').title = CONN.msg || getApiUrl() || '';
+}
+setInterval(renderConn, 30000);
+
+/* ===== Web App URL modal ===== */
+function openUrlModal(){
+  document.getElementById('urlInput').value = getApiUrl();
+  document.getElementById('urlErr').classList.add('hidden');
+  document.getElementById('urlMode').textContent = isCustomUrl()
+    ? 'This device is using a custom URL. Click "Use default" to go back to the shared connection.'
+    : 'This device is using the default (shared) URL.';
+  document.getElementById('urlModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('urlInput').focus(), 50);
+}
+async function saveUrl(e){
+  e.preventDefault();
+  const v = document.getElementById('urlInput').value.trim();
+  const err = document.getElementById('urlErr');
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(v)){
+    err.textContent = 'That doesn\'t look right. It should start with https://script.google.com/ and end with /exec.';
+    err.classList.remove('hidden');
+    return;
+  }
+  if (v === DEFAULT_API_URL) localStorage.removeItem(URL_KEY);
+  else localStorage.setItem(URL_KEY, v);
+  document.getElementById('urlModal').classList.add('hidden');
+  await load();
+}
+async function resetUrl(){
+  localStorage.removeItem(URL_KEY);
+  document.getElementById('urlModal').classList.add('hidden');
+  await load();
+}
+
+/* ===== API call ===== */
+async function run(fn, ...args){
+  const url = getApiUrl();
+  if (!url){ setConn('idle'); openUrlModal(); throw new Error('Set the Web App URL first.'); }
+  setConn('busy');
+  let data;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify({ action: fn, args: args })
+    });
+    data = await res.json();
+  } catch (e) {
+    setConn('err', 'Could not reach the Web App. Check the URL and that access is set to "Anyone".');
+    throw new Error(CONN.msg);
+  }
+  setConn('ok');
+  if (!data.ok) throw new Error(data.error);
+  return data.result;
+}
+
+/* ===== Scheduling logic (mirrors Code.gs) ===== */
+const FREQ = {'Daily':{days:1},'Weekly':{days:7},'Bi-Weekly':{days:14},'Monthly':{months:1},
+  'Quarterly':{months:3},'Semi-Annual':{months:6},'Annual':{months:12}};
+function addFreq(dateStr, freq, customDays, n){
+  n = n || 1;
+  const p = String(dateStr).split('-').map(Number), f = FREQ[freq];
+  let d;
+  if (f && f.months){
+    d = new Date(p[0], p[1]-1 + f.months*n, 1);
+    const dim = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    d.setDate(Math.min(p[2], dim));
+  } else {
+    const days = f ? f.days : Math.max(1, Number(customDays) || 30);
+    d = new Date(p[0], p[1]-1, p[2] + days*n);
+  }
+  return ymd(d);
+}
+function computeNextDue(pm, prevDue){
+  if (!pm.Last_Done) return pm.Start_Date;
+  if (pm.Schedule_Basis === 'Fixed' && pm.Start_Date){
+    const floor = prevDue && prevDue > pm.Last_Done ? prevDue : pm.Last_Done;
+    if (floor < pm.Start_Date) return pm.Start_Date;
+    let n = 1, d = addFreq(pm.Start_Date, pm.Frequency, pm.Custom_Days, n);
+    while (d <= floor && n < 5000) d = addFreq(pm.Start_Date, pm.Frequency, pm.Custom_Days, ++n);
+    return d;
+  }
+  return addFreq(pm.Last_Done, pm.Frequency, pm.Custom_Days, 1);
+}
+
+/* ===== State & utils ===== */
+const S = {pms:[], logs:[], lists:{}, view:'pm', sort:{key:'Next_Due', dir:1},
+  cal:new Date(new Date().getFullYear(), new Date().getMonth(), 1), sel:null, calMap:{}};
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+const today = () => ymd(new Date());
+const toDate = s => { const p = String(s).split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); };
+const daysUntil = s => Math.round((toDate(s) - toDate(today())) / 864e5);
+const nice = s => s ? toDate(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s => String(s).replace(/\s+/g,'-');
+const uniq = a => [...new Set(a.filter(Boolean).map(String))].sort();
+const formData = f => Object.fromEntries(new FormData(f).entries());
+
+function status(p){
+  if (p.Status === 'On Hold' || p.Status === 'Inactive') return p.Status;
+  if (!p.Next_Due) return 'Scheduled';
+  const d = daysUntil(p.Next_Due);
+  return d < 0 ? 'Overdue' : d === 0 ? 'Due Today' : d <= 7 ? 'Due Soon' : 'Scheduled';
+}
+function freqLabel(p){
+  const f = p.Frequency === 'Custom' ? `Every ${p.Custom_Days || '?'} days` : (p.Frequency || '—');
+  return f + (p.Schedule_Basis === 'Fixed' ? ' (fixed)' : '');
+}
+function dueText(p){
+  if (p.Status !== 'Active' || !p.Next_Due) return '';
+  const d = daysUntil(p.Next_Due);
+  return d < 0 ? `${-d} day${d === -1 ? '' : 's'} overdue` : d === 0 ? 'Due today' : `in ${d} day${d === 1 ? '' : 's'}`;
+}
+
+/* ===== Load & render ===== */
+async function load(){
+  busy(true);
+  try {
+    const d = await run('getData');
+    S.pms = d.pms; S.logs = d.logs; S.lists = d.lists;
+    fillLists(); renderAll();
+  } catch(e){ toast(e.message || e, true); }
+  finally { busy(false); }
+}
+function renderAll(){ renderKpis(); renderTable(); renderCal(); renderUpcoming(); }
+
+function fillLists(){
+  const cats = uniq([...(S.lists.Categories||[]), ...S.pms.map(p => p.Category)]);
+  const per  = uniq([...(S.lists.Personnel||[]), ...S.pms.map(p => p.Assigned_To)]);
+  const loc  = uniq([...(S.lists.Locations||[]), ...S.pms.map(p => p.Location)]);
+  const opts = a => a.map(v => `<option value="${esc(v)}">`).join('');
+  $('#dlCat').innerHTML = opts(cats); $('#dlPer').innerHTML = opts(per); $('#dlLoc').innerHTML = opts(loc);
+  const keep = $('#fCat').value;
+  $('#fCat').innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
+  $('#fCat').value = keep;
+}
+
+function renderKpis(){
+  const active = S.pms.filter(p => p.Status === 'Active');
+  const st = active.map(status);
+  const ym = today().slice(0,7);
+  const doneMonth = S.logs.filter(l => String(l.Date_Done).startsWith(ym));
+  const onTime = doneMonth.filter(l => !l.Due_Date || l.Date_Done <= l.Due_Date).length;
+  const k = [
+    ['Active PMs', active.length, '', ''],
+    ['Overdue', st.filter(s => s === 'Overdue').length, 'bad', 'Overdue'],
+    ['Due within 7 days', st.filter(s => s === 'Due Today' || s === 'Due Soon').length, 'warn', 'Due Soon'],
+    ['Done this month', doneMonth.length, 'ok', 'LOG'],
+    ['On-time rate (month)', doneMonth.length ? Math.round(onTime / doneMonth.length * 100) + '%' : '—', '', 'LOG']
+  ];
+  $('#kpis').innerHTML = k.map(([l,v,c,f]) =>
+    `<div class="kpi ${c}" onclick="quickFilter('${f}')"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+function quickFilter(f){
+  if (f === 'LOG') return setView('log');
+  setView('pm'); $('#fStatus').value = f; renderTable();
+}
+
+const RANK = {Priority:{Critical:0,High:1,Medium:2,Low:3},
+  _st:{'Overdue':0,'Due Today':1,'Due Soon':2,'Scheduled':3,'On Hold':4,'Inactive':5}};
+function sortRows(rows){
+  const {key, dir} = S.sort;
+  const val = r => RANK[key] ? (RANK[key][r[key]] ?? 9) : r[key];
+  rows.sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (x === y) return 0;
+    if (x === '' || x == null) return 1;
+    if (y === '' || y == null) return -1;
+    return (typeof x === 'number' && typeof y === 'number' ? x - y
+      : String(x).localeCompare(String(y), undefined, {numeric:true})) * dir;
+  });
+}
+function sortBy(k){ S.sort = {key:k, dir: S.sort.key === k ? -S.sort.dir : 1}; renderTable(); }
+function head(cols, actions){
+  return '<thead><tr>' + cols.map(([k,l]) =>
+    `<th onclick="sortBy('${k}')">${l}${S.sort.key === k ? (S.sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')
+    + (actions ? '<th></th>' : '') + '</tr></thead>';
+}
+
+function renderTable(){
+  const q = $('#q').value.trim().toLowerCase();
+  let rows;
+  if (S.view === 'pm'){
+    const fs = $('#fStatus').value, fc = $('#fCat').value, ff = $('#fFreq').value;
+    rows = S.pms.map(p => Object.assign({_st: status(p)}, p)).filter(p =>
+      (!q || [p.PM_ID,p.Equipment,p.Equipment_Tag,p.Task,p.Location,p.Assigned_To,p.Category].join(' ').toLowerCase().includes(q)) &&
+      (!fs || p._st === fs || (fs === 'Due Soon' && p._st === 'Due Today')) &&
+      (!fc || p.Category === fc) && (!ff || p.Frequency === ff));
+    sortRows(rows);
+    const cols = [['PM_ID','ID'],['Equipment','Equipment'],['Task','Task'],['Frequency','Frequency'],
+      ['Next_Due','Next Due'],['Assigned_To','Assigned'],['Priority','Priority'],['_st','Status']];
+    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(p => `<tr>
+      <td class="mono">${esc(p.PM_ID)}</td>
+      <td><b>${esc(p.Equipment)}</b><div class="sub">${esc([p.Equipment_Tag, p.Location].filter(Boolean).join(' · '))}</div></td>
+      <td>${esc(p.Task)}<div class="sub">${esc(p.Category || '')}</div></td>
+      <td>${esc(freqLabel(p))}</td>
+      <td>${nice(p.Next_Due)}<div class="sub">${dueText(p)}</div></td>
+      <td>${esc(p.Assigned_To || '—')}</td>
+      <td><span class="pri pri-${esc(p.Priority || 'Medium')}">${esc(p.Priority || 'Medium')}</span></td>
+      <td><span class="badge b-${slug(p._st)}">${p._st}</span></td>
+      <td class="actions">
+        <button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
+        <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
+        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>
+      </td></tr>`).join('') + '</tbody>';
+  } else {
+    rows = S.logs.map(l => Object.assign({_ot: !l.Due_Date ? '—' : (l.Date_Done <= l.Due_Date ? 'On time' : 'Late')}, l))
+      .filter(l => !q || [l.Log_ID,l.PM_ID,l.Equipment,l.Task,l.Performed_By,l.Findings,l.Action_Taken].join(' ').toLowerCase().includes(q));
+    sortRows(rows);
+    const cols = [['Date_Done','Date Done'],['Equipment','Equipment'],['Task','Task'],['Performed_By','By'],
+      ['Findings','Findings / Action'],['Downtime_Hrs','Downtime'],['Cost','Cost'],['_ot','Timeliness']];
+    $('#tbl').innerHTML = head(cols) + '<tbody>' + rows.map(l => `<tr>
+      <td>${nice(l.Date_Done)}<div class="sub mono">${esc(l.Log_ID)}</div></td>
+      <td><b>${esc(l.Equipment)}</b><div class="sub mono">${esc(l.PM_ID)}</div></td>
+      <td>${esc(l.Task)}<div class="sub">Due ${nice(l.Due_Date)}</div></td>
+      <td>${esc(l.Performed_By || '—')}</td>
+      <td>${esc(l.Findings || '')}${l.Action_Taken ? `<div class="sub">Action: ${esc(l.Action_Taken)}</div>` : ''}</td>
+      <td>${l.Downtime_Hrs !== '' && l.Downtime_Hrs != null ? esc(l.Downtime_Hrs) + ' h' : '—'}</td>
+      <td>${l.Cost !== '' && l.Cost != null ? '₱' + Number(l.Cost).toLocaleString() : '—'}</td>
+      <td>${l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`}</td></tr>`).join('') + '</tbody>';
+  }
+  $('#empty').classList.toggle('hidden', rows.length > 0);
+}
+
+function setView(v){
+  if (S.view !== v) S.sort = v === 'pm' ? {key:'Next_Due', dir:1} : {key:'Date_Done', dir:-1};
+  S.view = v;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  document.querySelectorAll('.pm-only').forEach(el => el.classList.toggle('hidden', v !== 'pm'));
+  renderTable();
+}
+
+/* ===== Calendar ===== */
+function occurrences(from, to){
+  const out = [];
+  S.pms.forEach(p => {
+    if (p.Status !== 'Active' || !p.Next_Due) return;
+    for (let n = 0, d = p.Next_Due; d <= to && n < 400; d = addFreq(p.Next_Due, p.Frequency, p.Custom_Days, ++n))
+      if (d >= from) out.push({date:d, pm:p, first:n === 0});
+  });
+  return out;
+}
+function renderCal(){
+  const y = S.cal.getFullYear(), m = S.cal.getMonth(), offset = new Date(y, m, 1).getDay();
+  $('#calTitle').textContent = S.cal.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  const days = [...Array(42)].map((_, i) => new Date(y, m, 1 - offset + i));
+  const from = ymd(days[0]), to = ymd(days[41]), t = today(), map = {};
+  const slot = k => map[k] = map[k] || {due:[], done:[]};
+  occurrences(from, to).forEach(o => slot(o.date).due.push(o));
+  S.logs.filter(l => l.Date_Done >= from && l.Date_Done <= to).forEach(l => slot(l.Date_Done).done.push(l));
+  let html = ['S','M','T','W','T','F','S'].map(d => `<div class="dow">${d}</div>`).join('');
+  days.forEach(d => {
+    const k = ymd(d), e = map[k];
+    let dots = '';
+    if (e){
+      if (e.due.some(o => o.date < t)) dots += '<i class="dot" style="background:var(--bad)"></i>';
+      if (e.due.some(o => o.date >= t)) dots += '<i class="dot" style="background:var(--burgundy)"></i>';
+      if (e.done.length) dots += '<i class="dot" style="background:var(--ok)"></i>';
+    }
+    const cls = ['day', d.getMonth() !== m ? 'other' : '', k === t ? 'today' : '', k === S.sel ? 'sel' : ''].join(' ');
+    html += `<div class="${cls}" onclick="pickDay('${k}')"><span>${d.getDate()}</span><div class="dots">${dots}</div></div>`;
+  });
+  $('#cal').innerHTML = html;
+  S.calMap = map;
+  renderDayList();
+}
+function shiftMonth(n){
+  const now = new Date();
+  S.cal = n === 0 ? new Date(now.getFullYear(), now.getMonth(), 1) : new Date(S.cal.getFullYear(), S.cal.getMonth() + n, 1);
+  renderCal();
+}
+function pickDay(k){ S.sel = S.sel === k ? null : k; renderCal(); }
+function item(p, date, actionable){
+  const od = date < today();
+  return `<div class="item ${od ? 'od' : ''}"><div><b>${esc(p.Equipment)}</b><div class="sub">${esc(p.Task)}</div>
+    <div class="sub">${od ? 'Overdue since ' + nice(date) : nice(date)}${p.Assigned_To ? ' · ' + esc(p.Assigned_To) : ''}</div></div>
+    ${actionable ? `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>` : ''}</div>`;
+}
+function renderDayList(){
+  const box = $('#dayList');
+  if (!S.sel){ box.innerHTML = ''; return; }
+  const e = S.calMap[S.sel] || {due:[], done:[]};
+  let h = `<div class="dl-title">${nice(S.sel)}</div>`;
+  if (!e.due.length && !e.done.length) h += '<div class="muted small" style="margin-top:6px">Nothing scheduled.</div>';
+  e.due.forEach(o => h += item(o.pm, o.date, o.first));
+  e.done.forEach(l => h += `<div class="item done"><div><b>${esc(l.Equipment)}</b>
+    <div class="sub">✓ ${esc(l.Task)}${l.Performed_By ? ' — ' + esc(l.Performed_By) : ''}</div></div></div>`);
+  box.innerHTML = h;
+}
+function renderUpcoming(){
+  const t = today(), end = addFreq(t, 'Custom', 14);
+  const overdue = S.pms.filter(p => p.Status === 'Active' && p.Next_Due && p.Next_Due < t)
+    .map(p => ({date:p.Next_Due, pm:p, first:true}));
+  const all = [...overdue, ...occurrences(t, end)].sort((a, b) => a.date.localeCompare(b.date));
+  $('#upList').innerHTML = all.length ? all.slice(0, 40).map(o => item(o.pm, o.date, o.first)).join('')
+    : '<div class="muted small">Nothing due in the next 14 days.</div>';
+}
+
+/* ===== Add / Edit / Delete ===== */
+function openForm(id){
+  const f = $('#pmForm'); f.reset();
+  const p = id ? S.pms.find(x => x.PM_ID === id) : null;
+  $('#formTitle').textContent = p ? 'Edit ' + p.PM_ID : 'New Preventive Maintenance';
+  if (p) Object.keys(p).forEach(k => { if (f.elements[k]) f.elements[k].value = p[k] == null ? '' : p[k]; });
+  else {
+    f.elements.PM_ID.value = ''; f.elements.Start_Date.value = today(); f.elements.Frequency.value = 'Monthly';
+    f.elements.Priority.value = 'Medium'; f.elements.Status.value = 'Active'; f.elements.Schedule_Basis.value = 'Completion';
+  }
+  formChanged(); openModal('formModal');
+}
+function formChanged(){
+  const f = $('#pmForm'), d = formData(f);
+  $('#customWrap').classList.toggle('hidden', d.Frequency !== 'Custom');
+  f.elements.Custom_Days.required = d.Frequency === 'Custom';
+  if (!d.Start_Date){ $('#nextPreview').innerHTML = ''; return; }
+  const nx = computeNextDue(d);
+  $('#nextPreview').innerHTML = `Next due: <b>${nice(nx)}</b> &nbsp;→ then ${nice(addFreq(nx, d.Frequency, d.Custom_Days, 1))}, ${nice(addFreq(nx, d.Frequency, d.Custom_Days, 2))} …`;
+}
+async function submitForm(e){
+  e.preventDefault();
+  const d = formData(e.target);
+  if (d.Frequency !== 'Custom') d.Custom_Days = '';
+  busy(true);
+  try { await run('savePM', d); closeModal('formModal'); toast('Saved'); await load(); }
+  catch(err){ toast(err.message || err, true); busy(false); }
+}
+async function delPM(id){
+  const p = S.pms.find(x => x.PM_ID === id);
+  if (!confirm(`Delete ${id} – ${p ? p.Equipment : ''}?\nIts history log will be kept.`)) return;
+  busy(true);
+  try { await run('deletePM', id); toast('Deleted'); await load(); }
+  catch(err){ toast(err.message || err, true); busy(false); }
+}
+
+/* ===== Mark as done ===== */
+function openDone(id){
+  const p = S.pms.find(x => x.PM_ID === id); if (!p) return;
+  const f = $('#doneForm'); f.reset();
+  f.elements.PM_ID.value = id; f.elements.Date_Done.value = today(); f.elements.Performed_By.value = p.Assigned_To || '';
+  $('#doneInfo').innerHTML = `<b>${esc(p.Equipment)}</b> — ${esc(p.Task)}<div class="sub">Due ${nice(p.Next_Due)} · ${esc(freqLabel(p))}</div>`;
+  const items = String(p.Checklist || '').split('\n').map(s => s.trim()).filter(Boolean);
+  $('#doneChecklist').innerHTML = items.length ? '<div class="cl-title">Checklist</div>' +
+    items.map(i => `<label class="chk"><input type="checkbox" value="${esc(i)}"> ${esc(i)}</label>`).join('') : '';
+  openModal('doneModal');
+}
+async function submitDone(e){
+  e.preventDefault();
+  const d = formData(e.target), id = d.PM_ID; delete d.PM_ID;
+  const boxes = [...document.querySelectorAll('#doneChecklist input')];
+  if (boxes.length){
+    const un = boxes.filter(b => !b.checked).map(b => b.value);
+    d.Findings = `Checklist ${boxes.length - un.length}/${boxes.length} done${un.length ? ' (not done: ' + un.join('; ') + ')' : ''}. ` + (d.Findings || '');
+  }
+  busy(true);
+  try { const next = await run('completePM', id, d); closeModal('doneModal'); toast('Done! Next due ' + nice(next)); await load(); }
+  catch(err){ toast(err.message || err, true); busy(false); }
+}
+
+/* ===== UI helpers ===== */
+function openModal(id){ $('#' + id).classList.remove('hidden'); }
+function closeModal(id){ $('#' + id).classList.add('hidden'); }
+function busy(on){ $('#busy').classList.toggle('hidden', !on); }
+function toast(msg, err){
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = 'toast', 3200);
+}
+
+(function init(){
+  const fo = Object.keys(FREQ).concat('Custom');
+  $('#fFreq').innerHTML = '<option value="">All frequencies</option>' + fo.map(f => `<option>${f}</option>`).join('');
+  document.querySelector('#pmForm [name=Frequency]').innerHTML = fo.map(f => `<option>${f}</option>`).join('');
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg').forEach(m => m.classList.add('hidden')); });
+  document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
+  renderConn();
+  load();
+})();
+</script>
+</body>
+</html>
