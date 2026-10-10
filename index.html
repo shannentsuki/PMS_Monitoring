@@ -3,13 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#5c0a1e">
+<meta name="apple-mobile-web-app-title" content="PMS Monitoring">
 <title>PMS Monitoring</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235c0a1e'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='32' cy='32' r='15'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(45 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(90 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(135 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(180 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(225 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(270 32 32)'/%3E%3Crect x='28' y='10' width='8' height='9' rx='1.5' transform='rotate(315 32 32)'/%3E%3C/g%3E%3Cpath d='M25 32l5 5 9-10' fill='none' stroke='%23800020' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 :root{--maroon:#800000;--burgundy:#800020;--wine:#5c0a1e;--deep:#3d0612;--rose:#f7ecee;--rose2:#ecd3d9;
 --ink:#2b1a1d;--muted:#7a6268;--line:#eadadd;--ok:#2e7d4f;--warn:#b86e00;--bad:#b3001b}
 *{box-sizing:border-box}
-body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#faf5f6;color:var(--ink);padding-bottom:80px}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#faf5f6;color:var(--ink);padding-bottom:80px;-webkit-text-size-adjust:100%}
 header{background:linear-gradient(120deg,var(--deep),var(--burgundy) 55%,var(--maroon));color:#fff;padding:14px 24px;
 display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(61,6,18,.35)}
 header h1{font-size:21px;margin:0;letter-spacing:.5px}
@@ -33,9 +35,9 @@ main{padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr) 340px;ga
 .kpi.bad{border-color:var(--bad)}.kpi.bad .v{color:var(--bad)}
 .kpi.warn{border-color:var(--warn)}.kpi.warn .v{color:var(--warn)}
 .kpi.ok{border-color:var(--ok)}.kpi.ok .v{color:var(--ok)}
-.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(60,0,15,.08);padding:16px}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(60,0,15,.08);padding:16px;min-width:0}
 .card h3{margin:0 0 10px;font-size:13px;color:var(--wine);text-transform:uppercase;letter-spacing:.7px}
-aside{display:flex;flex-direction:column;gap:16px}
+aside{display:flex;flex-direction:column;gap:16px;min-width:0}
 .tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px}
 .tab{padding:7px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;font-size:14px}
 .tab.active{background:var(--burgundy);color:#fff}
@@ -105,7 +107,7 @@ tr:hover td{background:#fdf8f9}
 .busy{position:fixed;inset:0;background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;z-index:60}
 .spinner{width:42px;height:42px;border:4px solid var(--rose2);border-top-color:var(--burgundy);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--wine);color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:70;font-size:14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--wine);color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:70;font-size:14px;max-width:calc(100vw - 24px);text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.err{background:var(--bad)}
 /* connection status */
 .conn{position:fixed;left:16px;bottom:16px;z-index:40;background:#fff;border:1px solid var(--line);border-left:4px solid var(--burgundy);
@@ -122,6 +124,59 @@ border-radius:10px;padding:8px 12px;box-shadow:0 4px 14px rgba(60,0,15,.14);font
 .conn-link:hover{text-decoration:underline}
 .url-err{margin-top:8px;color:var(--bad);font-size:12px}
 .url-mode{margin:10px 0 0;font-size:12px;color:var(--muted)}
+
+/* ================= PHONE / SMALL SCREENS ================= */
+@media(max-width:700px){
+  header{padding:12px 14px;gap:8px}
+  header h1{font-size:18px}
+  header small{font-size:11px}
+  .hdr-actions .btn{padding:8px 11px}
+  main{padding:12px;gap:12px}
+  .kpis{gap:8px}
+  .kpi{padding:10px 12px}
+  .kpi .v{font-size:22px}
+  .kpi .l{font-size:10px}
+  .kpi:nth-child(5){grid-column:1/-1}
+  .card{padding:12px}
+  .tab{flex:1;text-align:center;padding:9px 8px;font-size:13px}
+  .filters #q{flex:1 1 100%!important;min-width:0!important}
+  .filters select{flex:1 1 0;min-width:0}
+  input,select,textarea{font-size:16px}  /* stops iPhone auto-zoom on tap */
+
+  /* table becomes cards */
+  .table-wrap{overflow:visible}
+  #tbl thead{display:none}
+  #tbl,#tbl tbody,#tbl tr,#tbl td{display:block;width:100%}
+  #tbl tr{border:1px solid var(--line);border-left:4px solid var(--burgundy);border-radius:10px;margin-bottom:10px;padding:6px 12px;background:#fff}
+  #tbl tr.st-Overdue,#tbl tr.st-Late{border-left-color:var(--bad)}
+  #tbl tr.st-Due-Today,#tbl tr.st-Due-Soon{border-left-color:var(--warn)}
+  #tbl tr.st-On-time{border-left-color:var(--ok)}
+  #tbl tr.st-On-Hold,#tbl tr.st-Inactive{border-left-color:#bbb}
+  #tbl tr:hover td{background:none}
+  #tbl td{border:none;padding:6px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  #tbl td::before{content:attr(data-label);font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;flex:none;padding-top:2px}
+  #tbl td .cv{text-align:right;min-width:0;word-break:break-word}
+  #tbl td.actions{border-top:1px solid var(--line);margin-top:4px;padding-top:10px;justify-content:flex-end}
+  #tbl td.actions::before{content:none}
+  #tbl td.actions .cv{display:flex;gap:8px}
+  .ic{width:40px;height:40px;font-size:16px}
+
+  /* modals become bottom sheets */
+  .modal-bg{padding:0;align-items:flex-end}
+  .modal{border-radius:16px 16px 0 0;max-height:94vh;display:flex;flex-direction:column}
+  .modal form{overflow-y:auto;padding:14px}
+  .done-info{padding:14px 14px 0}
+  .modal-foot{position:sticky;bottom:-14px;background:#fff;padding:10px 0 14px;margin-top:12px}
+  .modal-foot .btn{flex:1;padding:12px}
+  .modal-foot .left{margin-right:0}
+
+  /* connection status as slim bottom bar */
+  body{padding-bottom:70px}
+  .conn{left:8px;right:8px;bottom:8px;max-width:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px}
+  .conn-link{margin-top:0;white-space:nowrap}
+  .toast{bottom:64px}
+  #upList{max-height:none}
+}
 </style>
 </head>
 <body>
@@ -140,7 +195,7 @@ border-radius:10px;padding:8px 12px;box-shadow:0 4px 14px rgba(60,0,15,.14);font
   <section class="card">
     <div class="tabs">
       <div class="tab active" data-view="pm" onclick="setView('pm')">Schedules</div>
-      <div class="tab" data-view="log" onclick="setView('log')">Maintenance History</div>
+      <div class="tab" data-view="log" onclick="setView('log')">History</div>
     </div>
     <div class="filters">
       <input id="q" placeholder="Search equipment, task, tag, person…" oninput="renderTable()" style="flex:1;min-width:200px">
@@ -398,6 +453,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp
 const slug = s => String(s).replace(/\s+/g,'-');
 const uniq = a => [...new Set(a.filter(Boolean).map(String))].sort();
 const formData = f => Object.fromEntries(new FormData(f).entries());
+const td = (label, html, cls) => `<td data-label="${label}"${cls ? ` class="${cls}"` : ''}><div class="cv">${html}</div></td>`;
 
 function status(p){
   if (p.Status === 'On Hold' || p.Status === 'Inactive') return p.Status;
@@ -492,35 +548,35 @@ function renderTable(){
     sortRows(rows);
     const cols = [['PM_ID','ID'],['Equipment','Equipment'],['Task','Task'],['Frequency','Frequency'],
       ['Next_Due','Next Due'],['Assigned_To','Assigned'],['Priority','Priority'],['_st','Status']];
-    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(p => `<tr>
-      <td class="mono">${esc(p.PM_ID)}</td>
-      <td><b>${esc(p.Equipment)}</b><div class="sub">${esc([p.Equipment_Tag, p.Location].filter(Boolean).join(' · '))}</div></td>
-      <td>${esc(p.Task)}<div class="sub">${esc(p.Category || '')}</div></td>
-      <td>${esc(freqLabel(p))}</td>
-      <td>${nice(p.Next_Due)}<div class="sub">${dueText(p)}</div></td>
-      <td>${esc(p.Assigned_To || '—')}</td>
-      <td><span class="pri pri-${esc(p.Priority || 'Medium')}">${esc(p.Priority || 'Medium')}</span></td>
-      <td><span class="badge b-${slug(p._st)}">${p._st}</span></td>
-      <td class="actions">
-        <button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
+    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(p => `<tr class="st-${slug(p._st)}">` +
+      td('ID', esc(p.PM_ID), 'mono') +
+      td('Equipment', `<b>${esc(p.Equipment)}</b><div class="sub">${esc([p.Equipment_Tag, p.Location].filter(Boolean).join(' · '))}</div>`) +
+      td('Task', `${esc(p.Task)}<div class="sub">${esc(p.Category || '')}</div>`) +
+      td('Frequency', esc(freqLabel(p))) +
+      td('Next Due', `${nice(p.Next_Due)}<div class="sub">${dueText(p)}</div>`) +
+      td('Assigned', esc(p.Assigned_To || '—')) +
+      td('Priority', `<span class="pri pri-${esc(p.Priority || 'Medium')}">${esc(p.Priority || 'Medium')}</span>`) +
+      td('Status', `<span class="badge b-${slug(p._st)}">${p._st}</span>`) +
+      td('', `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
         <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
-        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>
-      </td></tr>`).join('') + '</tbody>';
+        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions') +
+      '</tr>').join('') + '</tbody>';
   } else {
     rows = S.logs.map(l => Object.assign({_ot: !l.Due_Date ? '—' : (l.Date_Done <= l.Due_Date ? 'On time' : 'Late')}, l))
       .filter(l => !q || [l.Log_ID,l.PM_ID,l.Equipment,l.Task,l.Performed_By,l.Findings,l.Action_Taken].join(' ').toLowerCase().includes(q));
     sortRows(rows);
     const cols = [['Date_Done','Date Done'],['Equipment','Equipment'],['Task','Task'],['Performed_By','By'],
       ['Findings','Findings / Action'],['Downtime_Hrs','Downtime'],['Cost','Cost'],['_ot','Timeliness']];
-    $('#tbl').innerHTML = head(cols) + '<tbody>' + rows.map(l => `<tr>
-      <td>${nice(l.Date_Done)}<div class="sub mono">${esc(l.Log_ID)}</div></td>
-      <td><b>${esc(l.Equipment)}</b><div class="sub mono">${esc(l.PM_ID)}</div></td>
-      <td>${esc(l.Task)}<div class="sub">Due ${nice(l.Due_Date)}</div></td>
-      <td>${esc(l.Performed_By || '—')}</td>
-      <td>${esc(l.Findings || '')}${l.Action_Taken ? `<div class="sub">Action: ${esc(l.Action_Taken)}</div>` : ''}</td>
-      <td>${l.Downtime_Hrs !== '' && l.Downtime_Hrs != null ? esc(l.Downtime_Hrs) + ' h' : '—'}</td>
-      <td>${l.Cost !== '' && l.Cost != null ? '₱' + Number(l.Cost).toLocaleString() : '—'}</td>
-      <td>${l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`}</td></tr>`).join('') + '</tbody>';
+    $('#tbl').innerHTML = head(cols) + '<tbody>' + rows.map(l => `<tr class="st-${slug(l._ot)}">` +
+      td('Date Done', `${nice(l.Date_Done)}<div class="sub mono">${esc(l.Log_ID)}</div>`) +
+      td('Equipment', `<b>${esc(l.Equipment)}</b><div class="sub mono">${esc(l.PM_ID)}</div>`) +
+      td('Task', `${esc(l.Task)}<div class="sub">Due ${nice(l.Due_Date)}</div>`) +
+      td('By', esc(l.Performed_By || '—')) +
+      td('Findings', `${esc(l.Findings || '—')}${l.Action_Taken ? `<div class="sub">Action: ${esc(l.Action_Taken)}</div>` : ''}`) +
+      td('Downtime', l.Downtime_Hrs !== '' && l.Downtime_Hrs != null ? esc(l.Downtime_Hrs) + ' h' : '—') +
+      td('Cost', l.Cost !== '' && l.Cost != null ? '₱' + Number(l.Cost).toLocaleString() : '—') +
+      td('Timeliness', l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`) +
+      '</tr>').join('') + '</tbody>';
   }
   $('#empty').classList.toggle('hidden', rows.length > 0);
 }
