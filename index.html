@@ -77,7 +77,10 @@ td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:hover td{background:var(--hover)}
 .mono{font-family:Consolas,monospace;font-size:12px;color:var(--muted)}
 .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.sub.off{color:var(--warn);font-weight:600}
 .emails{word-break:break-word}
+.paused-email{color:var(--muted);text-decoration:line-through}
+.paused-tag{display:inline-block;font-size:10px;font-weight:700;background:var(--tint);color:var(--warn);padding:0 6px;border-radius:999px;margin-left:3px;text-decoration:none}
 .badge,.pri{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .b-Overdue{background:#fde2e6;color:#b3001b}.b-Due-Today{background:#ffe5c7;color:#9a4f00}
 .b-Due-Soon{background:#fff3d6;color:#8a6200}.b-Scheduled{background:#f3e4e8;color:#800020}
@@ -103,18 +106,29 @@ html[data-theme="dark"] .pri-Critical{background:#c21d40}
 .chip{display:inline-block;padding:5px 10px;border-radius:999px;background:var(--tint);color:var(--accent);font-size:12px;font-weight:600;border:1px dashed var(--accent);cursor:pointer;margin:6px 6px 0 0;font-family:inherit}
 .chip:hover{background:var(--tint2)}
 .chip.ph{border-style:solid;border-color:var(--line);font-family:Consolas,monospace;font-size:11.5px}
+.pchip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 11px;border-radius:999px;background:var(--tint);color:var(--ink);font-size:12.5px;margin:8px 6px 0 0;border:1px solid var(--line)}
+.pchip button{border:none;background:var(--surface);color:var(--bad);width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
+.pchip button:hover{background:var(--bad);color:#fff}
 .hint{font-size:11.5px;color:var(--muted);font-weight:400}
-/* email tab */
-.set-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
-.set-row b{color:var(--heading)}
-.rem-status{margin-top:6px;font-size:12px;font-weight:600}
-.rem-status.on{color:var(--ok)}.rem-status.off{color:var(--muted)}.rem-status.warn{color:var(--warn)}
+.hint.off{color:var(--warn);font-weight:600}
+/* switches */
 .switch{position:relative;width:48px;height:28px;flex:none;display:inline-block}
-.switch input{opacity:0;width:0;height:0}
+.switch input{opacity:0;width:0;height:0;position:absolute}
 .slider{position:absolute;inset:0;background:var(--faint);border-radius:999px;cursor:pointer;transition:.2s}
 .slider:before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .switch input:checked + .slider{background:var(--ok)}
 .switch input:checked + .slider:before{transform:translateX(20px)}
+.switch.sm{width:40px;height:22px}
+.switch.sm .slider:before{width:16px;height:16px}
+.switch.sm input:checked + .slider:before{transform:translateX(18px)}
+.sw-wrap{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600}
+.chk-line{flex-direction:row!important;align-items:center;gap:10px!important;font-size:13px!important;color:var(--ink)!important;font-weight:600}
+/* email tab */
+.set-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.set-row.block{display:block;margin-top:12px}
+.set-row b{color:var(--heading)}
+.rem-status{margin-top:6px;font-size:12px;font-weight:600}
+.rem-status.on{color:var(--ok)}.rem-status.off{color:var(--muted)}.rem-status.warn{color:var(--warn)}
 #tplBody{width:100%;line-height:1.5}
 .tpl-actions,.test-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
 .test-row input{flex:1;min-width:180px}
@@ -220,8 +234,8 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   #tbl tr{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;margin-bottom:10px;padding:6px 12px;background:var(--surface)}
   #tbl tr.st-Overdue,#tbl tr.st-Late{border-left-color:var(--bad)}
   #tbl tr.st-Due-Today,#tbl tr.st-Due-Soon{border-left-color:var(--warn)}
-  #tbl tr.st-On-time{border-left-color:var(--ok)}
-  #tbl tr.st-On-Hold,#tbl tr.st-Inactive{border-left-color:#999}
+  #tbl tr.st-On-time,#tbl tr.st-rem-on{border-left-color:var(--ok)}
+  #tbl tr.st-On-Hold,#tbl tr.st-Inactive,#tbl tr.st-rem-off{border-left-color:#999}
   #tbl tr:hover td{background:none}
   #tbl td{border:none;padding:6px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   #tbl td::before{content:attr(data-label);font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;flex:none;padding-top:2px}
@@ -295,6 +309,17 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
         <label class="switch" title="Turn email reminders on or off">
           <input type="checkbox" id="remToggle" onchange="toggleReminders(this)"><span class="slider"></span>
         </label>
+      </div>
+
+      <div class="set-row block">
+        <b>Paused people</b>
+        <div class="sub">Emails listed here get no reminders for any equipment (for example, while on leave). Everyone else still receives them. Remove someone with × to resume.</div>
+        <div class="test-row" style="margin-top:10px">
+          <input id="pauseInput" type="email" list="dlEmails" placeholder="name@company.com"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addPaused();}">
+          <button class="btn btn-ghost" onclick="addPaused()">Pause</button>
+        </div>
+        <div id="pausedList"></div>
       </div>
 
       <div class="grid2" style="margin-top:16px">
@@ -437,6 +462,10 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
         <label class="full">Equipment / Asset *<input name="Equipment" list="dlEq" required></label>
         <label class="full">Email addresses *
           <textarea name="Emails" rows="4" required placeholder="One per line, or separated by commas"></textarea></label>
+        <label class="full chk-line">
+          <span class="switch sm"><input type="checkbox" name="Reminders_On" value="On" checked><span class="slider"></span></span>
+          Send reminder emails for this equipment
+        </label>
       </div>
       <p class="muted small" style="margin:10px 0 0">When email reminders are on, these addresses are emailed 1 week and 3 days before each PM of this equipment is due.</p>
       <div class="modal-foot">
@@ -465,7 +494,8 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   </div>
 </div>
 
-<datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist><datalist id="dlEq"></datalist>
+<datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist>
+<datalist id="dlEq"></datalist><datalist id="dlEmails"></datalist>
 <div class="busy hidden" id="busy"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -654,6 +684,9 @@ const norm = s => String(s == null ? '' : s).trim().toLowerCase();
 const uniq = a => [...new Set(a.filter(Boolean).map(String))].sort();
 const formData = f => Object.fromEntries(new FormData(f).entries());
 const findContact = name => S.contacts.find(c => norm(c.Equipment) === norm(name));
+const contactOn = c => norm(c.Reminders_On || 'On') !== 'off';
+const pausedList = () => (S.settings && S.settings.paused) || [];
+const splitEmails = s => String(s || '').split(/[\s,;]+/).map(x => x.trim()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
 const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s).trim());
 const td = (label, html, cls) => `<td data-label="${label}"${cls ? ` class="${cls}"` : ''}><div class="cv">${html}</div></td>`;
 
@@ -671,6 +704,14 @@ function dueText(p){
   if (p.Status !== 'Active' || !p.Next_Due) return '';
   const d = daysUntil(p.Next_Due);
   return d < 0 ? `${-d} day${d === -1 ? '' : 's'} overdue` : d === 0 ? 'Due today' : `in ${d} day${d === 1 ? '' : 's'}`;
+}
+// who would actually receive a reminder for this PM (after equipment switch + paused people)
+function recipientsFor(p){
+  const c = findContact(p.Equipment);
+  if (c && !contactOn(c)) return [];
+  const all = (c ? splitEmails(c.Emails) : []).concat(splitEmails(p.Notify_Emails)).map(e => e.toLowerCase());
+  const skip = new Set(pausedList());
+  return [...new Set(all)].filter(e => !skip.has(e));
 }
 
 /* ===== Load & render ===== */
@@ -690,9 +731,10 @@ function fillLists(){
   const per  = uniq([...(S.lists.Personnel||[]), ...S.pms.map(p => p.Assigned_To)]);
   const loc  = uniq([...(S.lists.Locations||[]), ...S.pms.map(p => p.Location)]);
   const eq   = uniq([...S.pms.map(p => p.Equipment), ...S.contacts.map(c => c.Equipment)]);
+  const ems  = uniq([...S.contacts.flatMap(c => splitEmails(c.Emails)), ...S.pms.flatMap(p => splitEmails(p.Notify_Emails))].map(e => e.toLowerCase()));
   const opts = a => a.map(v => `<option value="${esc(v)}">`).join('');
   $('#dlCat').innerHTML = opts(cats); $('#dlPer').innerHTML = opts(per);
-  $('#dlLoc').innerHTML = opts(loc); $('#dlEq').innerHTML = opts(eq);
+  $('#dlLoc').innerHTML = opts(loc); $('#dlEq').innerHTML = opts(eq); $('#dlEmails').innerHTML = opts(ems);
   const keep = $('#fCat').value;
   $('#fCat').innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
   $('#fCat').value = keep;
@@ -791,18 +833,27 @@ function renderTable(){
       td('Timeliness', l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`) +
       '</tr>').join('') + '</tbody>';
   } else {
-    rows = S.contacts.map((c, i) => Object.assign({_i: i,
+    const paused = new Set(pausedList());
+    rows = S.contacts.map((c, i) => Object.assign({_i: i, _on: contactOn(c) ? 1 : 0,
         _n: S.pms.filter(p => norm(p.Equipment) === norm(c.Equipment)).length}, c))
       .filter(c => !q || [c.Equipment, c.Emails].join(' ').toLowerCase().includes(q));
     sortRows(rows);
-    const cols = [['Equipment','Equipment / Asset'],['Emails','Reminder Emails'],['_n','Linked PMs']];
-    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(c => '<tr>' +
-      td('Equipment', `<b>${esc(c.Equipment)}</b>`) +
-      td('Emails', `<span class="emails">${esc(c.Emails)}</span>`) +
-      td('Linked PMs', c._n ? String(c._n) : '<span class="muted">0</span>') +
-      td('', `<button class="ic" title="Edit" onclick="openContact(${c._i})">✎</button>
-        <button class="ic del" title="Delete" onclick="delContact(${c._i})">🗑</button>`, 'actions') +
-      '</tr>').join('') + '</tbody>';
+    const cols = [['Equipment','Equipment / Asset'],['Emails','Reminder Emails'],['_n','Linked PMs'],['_on','Reminders']];
+    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(c => {
+      const emailsHtml = splitEmails(c.Emails).map(e => paused.has(e.toLowerCase())
+        ? `<span class="paused-email" title="Paused in the Email tab">${esc(e)}</span><span class="paused-tag">paused</span>`
+        : esc(e)).join(', ');
+      return `<tr class="${c._on ? 'st-rem-on' : 'st-rem-off'}">` +
+        td('Equipment', `<b>${esc(c.Equipment)}</b>${c._on ? '' : '<div class="sub off">Reminders off</div>'}`) +
+        td('Emails', `<span class="emails">${emailsHtml || '—'}</span>`) +
+        td('Linked PMs', c._n ? String(c._n) : '<span class="muted">0</span>') +
+        td('Reminders', `<span class="sw-wrap"><label class="switch sm" title="Reminders for this equipment">
+            <input type="checkbox" ${c._on ? 'checked' : ''} onchange="toggleContact(${c._i}, this)"><span class="slider"></span></label>
+            ${c._on ? 'On' : 'Off'}</span>`) +
+        td('', `<button class="ic" title="Edit" onclick="openContact(${c._i})">✎</button>
+          <button class="ic del" title="Delete" onclick="delContact(${c._i})">🗑</button>`, 'actions') +
+        '</tr>';
+    }).join('') + '</tbody>';
     S.missing = uniq(S.pms.filter(p => p.Status === 'Active' && !findContact(p.Equipment)).map(p => p.Equipment));
     $('#extra').innerHTML = S.missing.length
       ? `Active equipment with no reminder contact yet (tap to add):<br>` +
@@ -827,13 +878,18 @@ function renderEmailPanel(){
   const st = S.settings;
   if (!st){ $('#remStatus').textContent = 'Loading settings…'; return; }
   $('#remToggle').checked = st.enabled;
-  const noRecip = S.pms.filter(p => p.Status === 'Active' && !findContact(p.Equipment) &&
-    !String(p.Notify_Emails || '').trim()).length;
+  const active = S.pms.filter(p => p.Status === 'Active');
+  const noRecip = active.filter(p => !recipientsFor(p).length).length;
+  const offEq = S.contacts.filter(c => !contactOn(c)).length;
+  const extras = [
+    offEq ? `${offEq} equipment switched off` : '',
+    pausedList().length ? `${pausedList().length} ${pausedList().length > 1 ? 'people' : 'person'} paused` : '',
+    noRecip ? `${noRecip} active PM${noRecip > 1 ? 's' : ''} with no one to email` : ''
+  ].filter(Boolean).join(' · ');
   const el = $('#remStatus');
   if (st.enabled && st.running){
     el.className = 'rem-status on';
-    el.textContent = '● On · reminders will be sent 1 week and 3 days before due dates' +
-      (noRecip ? ` · ${noRecip} active PM${noRecip > 1 ? 's have' : ' has'} no email recipients yet` : '');
+    el.textContent = '● On · reminders go out 1 week and 3 days before due dates' + (extras ? ' · ' + extras : '');
   } else if (st.enabled){
     el.className = 'rem-status warn';
     el.textContent = '● On, but the background check is missing. Switch it off and on again.';
@@ -841,6 +897,7 @@ function renderEmailPanel(){
     el.className = 'rem-status off';
     el.textContent = '○ Off · no reminder emails will be sent';
   }
+  renderPaused();
   if (!S.tplDirty){
     $('#tplSubject').value = st.subject;
     $('#tplBody').value = st.body;
@@ -851,6 +908,30 @@ function renderEmailPanel(){
       `<button type="button" class="chip ph" onmousedown="event.preventDefault()" onclick="insertPh('${k}')">{{${k}}}</button>`).join('');
   }
   renderPreview();
+}
+function renderPaused(){
+  const list = pausedList();
+  $('#pausedList').innerHTML = list.length
+    ? list.map((e, i) => `<span class="pchip">${esc(e)}<button title="Resume reminders" onclick="removePaused(${i})">×</button></span>`).join('')
+    : '<div class="sub" style="margin-top:8px">No one is paused.</div>';
+}
+async function savePaused(list, msg){
+  busy(true);
+  try { S.settings = await run('setPausedEmails', list); toast(msg); }
+  catch(err){ toast(err.message || err, true); }
+  finally { busy(false); renderEmailPanel(); if (S.view === 'contacts') renderTable(); }
+}
+function addPaused(){
+  const v = $('#pauseInput').value.trim().toLowerCase();
+  if (!validEmail(v)){ toast('Enter a valid email address to pause.', true); $('#pauseInput').focus(); return; }
+  if (pausedList().includes(v)){ toast(v + ' is already paused.'); return; }
+  $('#pauseInput').value = '';
+  savePaused(pausedList().concat(v), 'Paused reminders for ' + v);
+}
+function removePaused(i){
+  const list = pausedList().slice();
+  const [e] = list.splice(i, 1);
+  savePaused(list, 'Reminders resumed for ' + e);
 }
 function tplEdited(){ S.tplDirty = true; renderPreview(); }
 function insertPh(k){
@@ -1001,7 +1082,10 @@ function formChanged(){
   $('#customWrap').classList.toggle('hidden', d.Frequency !== 'Custom');
   f.elements.Custom_Days.required = d.Frequency === 'Custom';
   const c = d.Equipment ? findContact(d.Equipment) : null;
-  $('#contactHint').textContent = !d.Equipment ? ''
+  const hint = $('#contactHint');
+  hint.className = 'hint' + (c && !contactOn(c) ? ' off' : '');
+  hint.textContent = !d.Equipment ? ''
+    : c && !contactOn(c) ? 'Reminders are switched OFF for this equipment (Contacts tab), so no emails will be sent for this PM.'
     : c ? 'Asset contacts also notified: ' + c.Emails
     : 'No asset contact yet for this equipment. Add one in the Contacts tab, or enter emails above.';
   if (!d.Start_Date){ $('#nextPreview').innerHTML = ''; return; }
@@ -1032,14 +1116,26 @@ function openContact(i, prefill){
   f.elements.Original_Equipment.value = c ? c.Equipment : '';
   f.elements.Equipment.value = c ? c.Equipment : (prefill || '');
   f.elements.Emails.value = c ? String(c.Emails).split(/\s*,\s*/).join('\n') : '';
+  f.elements.Reminders_On.checked = c ? contactOn(c) : true;
   openModal('contactModal');
 }
 async function submitContact(e){
   e.preventDefault();
-  const d = formData(e.target);
+  const d = formData(e.target);   // Reminders_On is "On" when checked, missing when unchecked
   busy(true);
   try { await run('saveContact', d); closeModal('contactModal'); toast('Contact saved'); await load(); }
   catch(err){ toast(err.message || err, true); busy(false); }
+}
+async function toggleContact(i, el){
+  const c = S.contacts[i]; if (!c) return;
+  const on = el.checked;
+  busy(true);
+  try {
+    await run('setContactReminders', c.Equipment, on);
+    c.Reminders_On = on ? 'On' : 'Off';
+    toast(`Reminders ${on ? 'ON' : 'OFF'} for ${c.Equipment}`);
+  } catch(err){ el.checked = !on; toast(err.message || err, true); }
+  finally { busy(false); renderTable(); }
 }
 async function delContact(i){
   const c = S.contacts[i]; if (!c) return;
