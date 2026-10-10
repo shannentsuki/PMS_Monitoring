@@ -144,7 +144,9 @@ html[data-theme="dark"] .pri-Critical{background:#c21d40}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--wine);color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:70;font-size:14px;max-width:calc(100vw - 24px);text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.err{background:#b3001b}
-/* connection status */
+/* page footer (holds the connection status + dark mode button) */
+.page-foot{max-width:1500px;margin:0 auto;padding:0 24px 20px;display:flex;justify-content:flex-end;align-items:center;gap:10px}
+/* connection status (desktop: floats in the lower-left corner) */
 .conn{position:fixed;left:16px;bottom:16px;z-index:40;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
 border-radius:10px;padding:8px 12px;box-shadow:0 4px 14px var(--shadow);font-size:12px;max-width:calc(100vw - 32px)}
 .conn-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -159,10 +161,10 @@ border-radius:10px;padding:8px 12px;box-shadow:0 4px 14px var(--shadow);font-siz
 .conn-link:hover{text-decoration:underline}
 .url-err{margin-top:8px;color:var(--bad);font-size:12px}
 .url-mode{margin:10px 0 0;font-size:12px;color:var(--muted)}
-/* dark mode button */
-.theme-btn{position:fixed;right:16px;bottom:16px;z-index:41;width:44px;height:44px;border-radius:50%;border:none;
+/* dark mode button (sits at the bottom of the page, does not float) */
+.theme-btn{flex:none;width:44px;height:44px;border-radius:50%;border:none;
 background:var(--burgundy);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
-box-shadow:0 4px 14px rgba(60,0,15,.35);transition:transform .15s}
+box-shadow:0 2px 8px var(--shadow);transition:transform .15s}
 .theme-btn:hover{transform:scale(1.08)}
 html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
 
@@ -211,13 +213,12 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   .modal-foot .btn{flex:1;padding:12px}
   .modal-foot .left{margin-right:0}
 
-  /* connection status sits at the bottom of the page (doesn't float) */
-  body{padding-bottom:72px}
-  .conn{position:static;margin:4px 12px 0;max-width:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;box-shadow:none}
+  /* footer row at the end of the page: status bar + dark mode button side by side */
+  body{padding-bottom:0}
+  .page-foot{padding:0 12px 16px;justify-content:space-between}
+  .conn{position:static;flex:1;min-width:0;max-width:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;box-shadow:none}
   .conn-link{margin-top:0;white-space:nowrap}
-
-  .theme-btn{right:12px;bottom:12px;width:42px;height:42px}
-  .toast{bottom:70px}
+  .theme-btn{width:42px;height:42px}
   #upList{max-height:none}
 }
 </style>
@@ -274,6 +275,18 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
     </div>
   </aside>
 </main>
+
+<!-- Page footer: connection status + dark mode button -->
+<footer class="page-foot">
+  <div class="conn" id="conn">
+    <div class="conn-row" id="connRow">
+      <i class="conn-dot" id="connDot"></i><b id="connLabel">Not connected</b><span class="conn-sub" id="connSub"></span>
+      <span class="conn-tag hidden" id="connTag">Custom URL</span>
+    </div>
+    <a href="#" class="conn-link" onclick="openUrlModal();return false;">Set Web App URL</a>
+  </div>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
+</footer>
 
 <!-- Add / Edit modal -->
 <div class="modal-bg hidden" id="formModal">
@@ -353,18 +366,6 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
     </form>
   </div>
 </div>
-
-<!-- Connection status (desktop: bottom-left corner · phone: end of page) -->
-<div class="conn" id="conn">
-  <div class="conn-row" id="connRow">
-    <i class="conn-dot" id="connDot"></i><b id="connLabel">Not connected</b><span class="conn-sub" id="connSub"></span>
-    <span class="conn-tag hidden" id="connTag">Custom URL</span>
-  </div>
-  <a href="#" class="conn-link" onclick="openUrlModal();return false;">Set Web App URL</a>
-</div>
-
-<!-- Dark mode toggle (bottom-right) -->
-<button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
 
 <datalist id="dlCat"></datalist><datalist id="dlPer"></datalist><datalist id="dlLoc"></datalist>
 <div class="busy hidden" id="busy"><div class="spinner"></div></div>
