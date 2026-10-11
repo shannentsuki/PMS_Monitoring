@@ -234,6 +234,16 @@ html[data-theme="dark"] .b-Create,html[data-theme="dark"] .b-Complete{background
 html[data-theme="dark"] .b-Edit,html[data-theme="dark"] .b-Update,html[data-theme="dark"] .b-Toggle{background:#3f3210;color:#f3d27a}
 html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
 
+.badge-n{display:inline-block;min-width:18px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;text-align:center}
+.req-box{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.req-box h3{margin:0 0 8px;font-size:14px;color:var(--heading)}
+.req-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.req-row:first-of-type{border-top:0}
+.req-who{flex:1 1 220px;min-width:0;word-break:break-word}
+.req-who .sub{font-size:12px}
+.req-row select{width:auto;padding:6px 8px}
+.req-box details{margin-top:6px}
+.req-box details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 /* ================= PHONE / SMALL SCREENS ================= */
 @media(max-width:700px){
   header{padding:12px 14px;gap:8px}
@@ -339,6 +349,7 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
       <button class="btn btn-primary users-only hidden" onclick="openUser(-1)">+ Add User</button>
       <button class="btn btn-ghost" onclick="exportView()" title="Download what's shown (with current search/filters) as an Excel file">⬇ Export to Excel</button>
     </div>
+    <div id="reqBox" class="req-box hidden"></div>
     <div class="table-wrap" id="tableWrap"><table id="tbl"></table></div>
     <div id="extra" class="extra hidden"></div>
     <div id="empty" class="empty hidden">No records found.</div>
@@ -687,6 +698,7 @@ async function enter(){
     $('#login').classList.add('hidden');
     if (S.view !== 'pm') setView('pm');
     await load();
+    if (S.me.role === 'Admin') loadRequests();
   } catch(e){ busy(false); if (!e.code) toast(e.message || e, true); }
 }
 function signOut(){
@@ -790,7 +802,7 @@ function emailHtml(bodyTpl, v, appUrl){
 }
 
 /* ===== State & utils ===== */
-const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], me:null, changes:[], users:[], settings:null, tplDirty:false, lastField:null,
+const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], me:null, changes:[], users:[], requests:[], settings:null, tplDirty:false, lastField:null,
   lastRows:[], view:'pm', sort:{key:'Next_Due', dir:1},
   cal:new Date(new Date().getFullYear(), new Date().getMonth(), 1), sel:null, calMap:{}};
 const $ = s => document.querySelector(s);
@@ -1024,8 +1036,9 @@ function setView(v){
   document.querySelectorAll('.contacts-only').forEach(el => el.classList.toggle('hidden', v !== 'contacts'));
   document.querySelectorAll('.users-only').forEach(el => el.classList.toggle('hidden', v !== 'users'));
   renderTable();
+  renderReqBox();
   if (v === 'activity') loadActivity();
-  if (v === 'users') loadUsers();
+  if (v === 'users'){ loadUsers(); loadRequests(); }
 }
 
 /* ===== Export to Excel (exports exactly what's shown: current tab + search/filters/sort) ===== */
@@ -1230,6 +1243,48 @@ async function sendTest(){
     });
     toast('Test email sent to ' + sentTo);
   } catch(err){ toast(err.message || err, true); }
+  finally { busy(false); }
+}
+
+/* ===== Access requests (Admin) ===== */
+async function loadRequests(){
+  try { S.requests = await run('getAccessRequests'); updateReqBadge(); renderReqBox(); }
+  catch(e){ if (!e.code) toast(e.message || e, true); }
+}
+function updateReqBadge(){
+  const n = (S.requests || []).filter(r => r.Status === 'Pending').length;
+  const t = document.querySelector('.tab[data-view="users"]');
+  if (t) t.innerHTML = 'Users' + (n ? ` <span class="badge-n">${n}</span>` : '');
+}
+function renderReqBox(){
+  const box = $('#reqBox');
+  const all = (S.requests || []).map((r, i) => Object.assign({_i: i}, r));
+  const pend = all.filter(r => r.Status === 'Pending'), dec = all.filter(r => r.Status === 'Declined');
+  if (S.view !== 'users' || (!pend.length && !dec.length)){ box.classList.add('hidden'); box.innerHTML = ''; return; }
+  const row = (r, canDecline) => `<div class="req-row">
+      <div class="req-who"><b>${esc(r.Name || r.Email)}</b><div class="sub">${esc(r.Email)} · ${esc(r.Attempts)} attempt${Number(r.Attempts) === 1 ? '' : 's'} · last ${esc(r.Last_Request_At)}</div></div>
+      <select id="rr_${r._i}"><option>Viewer</option><option>Editor</option><option>Admin</option></select>
+      <button class="btn btn-primary" onclick="approveReq(${r._i})">Approve</button>
+      ${canDecline ? `<button class="btn btn-ghost" onclick="declineReq(${r._i})">Decline</button>` : ''}
+    </div>`;
+  box.innerHTML = (pend.length ? `<h3>Access requests (${pend.length})</h3>` + pend.map(r => row(r, true)).join('') : '<h3>No pending requests</h3>') +
+    (dec.length ? `<details><summary>Declined (${dec.length})</summary>${dec.map(r => row(r, false)).join('')}</details>` : '');
+  box.classList.remove('hidden');
+}
+async function approveReq(i){
+  const r = S.requests[i]; if (!r) return;
+  const role = $('#rr_' + i).value;
+  busy(true);
+  try { await run('approveRequest', r.Email, role); toast(r.Email + ' approved as ' + role); S.users = await run('getUsers'); await loadRequests(); renderTable(); }
+  catch(err){ toast(err.message || err, true); }
+  finally { busy(false); }
+}
+async function declineReq(i){
+  const r = S.requests[i]; if (!r) return;
+  if (!confirm('Decline access for ' + r.Email + '?')) return;
+  busy(true);
+  try { await run('declineRequest', r.Email); toast('Request declined'); await loadRequests(); }
+  catch(err){ toast(err.message || err, true); }
   finally { busy(false); }
 }
 
