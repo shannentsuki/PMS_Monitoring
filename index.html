@@ -244,6 +244,14 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
 .req-row select{width:auto;padding:6px 8px}
 .req-box details{margin-top:6px}
 .req-box details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+/* ===== icons ===== */
+.ic{display:inline-flex;align-items:center;justify-content:center;padding:0;vertical-align:middle}
+.ic svg{width:16px;height:16px}
+.ic.del{color:var(--bad)}
+.ic.del:hover{color:#fff}
+.btn svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+.sub svg{width:13px;height:13px;vertical-align:-2px;color:var(--ok)}
+@media(max-width:700px){.ic svg{width:18px;height:18px}}
 /* ================= PHONE / SMALL SCREENS ================= */
 @media(max-width:700px){
   header{padding:12px 14px;gap:8px}
@@ -300,6 +308,39 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
   .theme-btn{width:42px;height:42px}
   #upList{max-height:none}
 }
+/* ===== coloured tabs with icons ===== */
+.tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  background:color-mix(in srgb,var(--tc,#888) 11%,transparent);transition:background .15s}
+.tab svg{width:16px;height:16px;flex:none;color:var(--tc,currentColor)}
+.tab:hover{background:color-mix(in srgb,var(--tc,#888) 20%,transparent)}
+.tab.active,.tab.active:hover{background:var(--burgundy);color:#fff}
+.tab.active svg{color:#fff}
+.tab .badge-n{margin-left:0}
+.tab[data-view="pm"]{--tc:#2f6fd6}
+.tab[data-view="log"]{--tc:#b7791f}
+.tab[data-view="contacts"]{--tc:#0f9488}
+.tab[data-view="email"]{--tc:#7c4dff}
+.tab[data-view="activity"]{--tc:#2e9e5b}
+.tab[data-view="users"]{--tc:#d9622b}
+html[data-theme="dark"] .tab[data-view="pm"]{--tc:#7aa8ff}
+html[data-theme="dark"] .tab[data-view="log"]{--tc:#f3b94d}
+html[data-theme="dark"] .tab[data-view="contacts"]{--tc:#4fd1c5}
+html[data-theme="dark"] .tab[data-view="email"]{--tc:#b197ff}
+html[data-theme="dark"] .tab[data-view="activity"]{--tc:#6fdc9a}
+html[data-theme="dark"] .tab[data-view="users"]{--tc:#ff9a6b}
+@media(max-width:700px){
+  .tab{flex:1 1 28%;flex-direction:column;gap:3px;padding:8px 4px}
+}
+/* ===== refresh icon button + bottom-left dock (status box and theme button together) ===== */
+.btn.icon-only{padding:8px 10px}
+.btn.icon-only svg{margin:0;vertical-align:middle}
+.dock{position:fixed;left:16px;bottom:16px;z-index:40;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px)}
+.dock .conn{position:static}
+@media(max-width:700px){
+  .dock{position:static;flex:1;width:100%;max-width:none}
+  .dock .conn{flex:1}
+}
+.hdr-left{display:flex;align-items:center;gap:12px;min-width:0}
 </style>
 </head>
 <body>
@@ -316,10 +357,12 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
 </div>
 
 <header>
-  <div><h1>PMS Monitoring</h1><small>Preventive Maintenance Schedule Tracking</small></div>
+  <div class="hdr-left">
+    <button class="btn btn-outline icon-only" onclick="load()" title="Refresh data" aria-label="Refresh data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <div><h1>PMS Monitoring</h1><small>Preventive Maintenance Schedule Tracking</small></div>
+  </div>
   <div class="hdr-actions">
     <div class="user-chip hidden" id="userChip"></div>
-    <button class="btn btn-outline" onclick="load()">↻ Refresh</button>
     <button class="btn btn-light need-editor" onclick="openForm()">+ New PM</button>
     <button class="btn btn-outline" onclick="signOut()">Sign out</button>
   </div>
@@ -330,12 +373,12 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
 
   <section class="card">
     <div class="tabs">
-      <div class="tab active" data-view="pm" onclick="setView('pm')">Schedules</div>
-      <div class="tab" data-view="log" onclick="setView('log')">History</div>
-      <div class="tab need-editor" data-view="contacts" onclick="setView('contacts')">Contacts</div>
-      <div class="tab need-admin" data-view="email" onclick="setView('email')">Email</div>
-      <div class="tab need-admin" data-view="activity" onclick="setView('activity')">Activity</div>
-      <div class="tab need-admin" data-view="users" onclick="setView('users')">Users</div>
+      <div class="tab active" data-view="pm" onclick="setView('pm')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg><span>Schedules</span></div>
+      <div class="tab" data-view="log" onclick="setView('log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>History</span></div>
+      <div class="tab need-editor" data-view="contacts" onclick="setView('contacts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 2v2"/><path d="M7 22v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><path d="M8 2v2"/><circle cx="12" cy="11" r="3"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg><span>Contacts</span></div>
+      <div class="tab need-admin" data-view="email" onclick="setView('email')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Email</span></div>
+      <div class="tab need-admin" data-view="activity" onclick="setView('activity')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Activity</span></div>
+      <div class="tab need-admin" data-view="users" onclick="setView('users')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span><span class="tab-badge"></span></div>
     </div>
     <div class="filters" id="filters">
       <input id="q" placeholder="Search equipment, task, tag, person, email…" oninput="renderTable()" style="flex:1;min-width:200px">
@@ -347,7 +390,7 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
       <select id="fFreq" class="pm-only" onchange="renderTable()"></select>
       <button class="btn btn-primary contacts-only hidden" onclick="openContact(-1)">+ Add Contact</button>
       <button class="btn btn-primary users-only hidden" onclick="openUser(-1)">+ Add User</button>
-      <button class="btn btn-ghost" onclick="exportView()" title="Download what's shown (with current search/filters) as an Excel file">⬇ Export to Excel</button>
+      <button class="btn btn-ghost" onclick="exportView()" title="Download what's shown (with current search/filters) as an Excel file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Export to Excel</button>
     </div>
     <div id="reqBox" class="req-box hidden"></div>
     <div class="table-wrap" id="tableWrap"><table id="tbl"></table></div>
@@ -434,6 +477,7 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
 
 <!-- Page footer: connection status + dark mode button -->
 <footer class="page-foot">
+ <div class="dock">
   <div class="conn" id="conn">
     <div class="conn-row" id="connRow">
       <i class="conn-dot" id="connDot"></i><b id="connLabel">Not connected</b><span class="conn-sub" id="connSub"></span>
@@ -442,6 +486,7 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
     <a href="#" class="conn-link" onclick="openUrlModal();return false;">Set Web App URL</a>
   </div>
   <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
+ </div>
 </footer>
 
 <!-- Add / Edit / Duplicate PM modal -->
@@ -503,7 +548,7 @@ html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" onclick="closeModal('doneModal')">Cancel</button>
-        <button type="submit" class="btn btn-primary">✓ Mark as Done</button>
+        <button type="submit" class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Mark as Done</button>
       </div>
     </form>
   </div>
@@ -656,6 +701,16 @@ async function resetUrl(){
   document.getElementById('urlModal').classList.add('hidden');
   await load();
 }
+
+/* ===== Icons (crisp line icons that follow the text colour) ===== */
+const ICON = {
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>`,
+  download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>`
+};
 
 /* ===== Google sign-in ===== */
 const GOOGLE_CLIENT_ID = '661212448719-7po6fh2jusfgb6vk4e54h1agan90av14.apps.googleusercontent.com';
@@ -946,10 +1001,10 @@ function renderTable(){
       td('Assigned', esc(p.Assigned_To || '—')) +
       td('Priority', `<span class="pri pri-${esc(p.Priority || 'Medium')}">${esc(p.Priority || 'Medium')}</span>`) +
       td('Status', `<span class="badge b-${slug(p._st)}">${p._st}</span>`) +
-      td('', `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
-        <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
-        <button class="ic" title="Duplicate (copy to a new PM)" onclick="duplicatePM('${esc(p.PM_ID)}')">⧉</button>
-        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions need-editor') +
+      td('', `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">${ICON.check}</button>
+        <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">${ICON.edit}</button>
+        <button class="ic" title="Duplicate (copy to a new PM)" onclick="duplicatePM('${esc(p.PM_ID)}')">${ICON.copy}</button>
+        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">${ICON.trash}</button>`, 'actions need-editor') +
       '</tr>').join('') + '</tbody>';
   } else if (S.view === 'log'){
     rows = S.logs.map(l => Object.assign({_ot: !l.Due_Date ? '—' : (l.Date_Done <= l.Due_Date ? 'On time' : 'Late')}, l))
@@ -991,8 +1046,8 @@ function renderTable(){
       td('Role', esc(u.Role)) +
       td('Access', u.Active === 'No' ? '<span class="badge b-Inactive">Disabled</span>' : '<span class="badge b-On-time">Active</span>') +
       td('Last sign-in', esc(u.Last_Login_At || '—')) +
-      td('', `<button class="ic" title="Edit" onclick="openUser(${u._i})">✎</button>
-        <button class="ic del" title="Remove" onclick="delUser(${u._i})">🗑</button>`, 'actions') +
+      td('', `<button class="ic" title="Edit" onclick="openUser(${u._i})">${ICON.edit}</button>
+        <button class="ic del" title="Remove" onclick="delUser(${u._i})">${ICON.trash}</button>`, 'actions') +
       '</tr>').join('') + '</tbody>';
   } else {
     const paused = new Set(pausedList());
@@ -1012,8 +1067,8 @@ function renderTable(){
         td('Reminders', `<span class="sw-wrap"><label class="switch sm" title="Reminders for this equipment">
             <input type="checkbox" ${c._on ? 'checked' : ''} onchange="toggleContact(${c._i}, this)"><span class="slider"></span></label>
             ${c._on ? 'On' : 'Off'}</span>`) +
-        td('', `<button class="ic" title="Edit" onclick="openContact(${c._i})">✎</button>
-          <button class="ic del" title="Delete" onclick="delContact(${c._i})">🗑</button>`, 'actions') +
+        td('', `<button class="ic" title="Edit" onclick="openContact(${c._i})">${ICON.edit}</button>
+          <button class="ic del" title="Delete" onclick="delContact(${c._i})">${ICON.trash}</button>`, 'actions') +
         '</tr>';
     }).join('') + '</tbody>';
     S.missing = uniq(S.pms.filter(p => p.Status === 'Active' && !findContact(p.Equipment)).map(p => p.Equipment));
@@ -1254,7 +1309,8 @@ async function loadRequests(){
 function updateReqBadge(){
   const n = (S.requests || []).filter(r => r.Status === 'Pending').length;
   const t = document.querySelector('.tab[data-view="users"]');
-  if (t) t.innerHTML = 'Users' + (n ? ` <span class="badge-n">${n}</span>` : '');
+  const b = t && t.querySelector('.tab-badge');
+  if (b) b.innerHTML = n ? `<span class="badge-n">${n}</span>` : '';
 }
 function renderReqBox(){
   const box = $('#reqBox');
@@ -1367,7 +1423,7 @@ function item(p, date, actionable){
   const od = date < today();
   return `<div class="item ${od ? 'od' : ''}"><div><b>${esc(p.Equipment)}</b><div class="sub">${esc(p.Task)}</div>
     <div class="sub">${od ? 'Overdue since ' + nice(date) : nice(date)}${p.Assigned_To ? ' · ' + esc(p.Assigned_To) : ''}</div></div>
-    ${actionable ? `<button class="ic ok need-editor" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>` : ''}</div>`;
+    ${actionable ? `<button class="ic ok need-editor" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">${ICON.check}</button>` : ''}</div>`;
 }
 function renderDayList(){
   const box = $('#dayList');
@@ -1377,7 +1433,7 @@ function renderDayList(){
   if (!e.due.length && !e.done.length) h += '<div class="muted small" style="margin-top:6px">Nothing scheduled.</div>';
   e.due.forEach(o => h += item(o.pm, o.date, o.first));
   e.done.forEach(l => h += `<div class="item done"><div><b>${esc(l.Equipment)}</b>
-    <div class="sub">✓ ${esc(l.Task)}${l.Performed_By ? ' — ' + esc(l.Performed_By) : ''}</div></div></div>`);
+    <div class="sub">${ICON.check} ${esc(l.Task)}${l.Performed_By ? ' — ' + esc(l.Performed_By) : ''}</div></div></div>`);
   box.innerHTML = h;
 }
 function renderUpcoming(){
