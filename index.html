@@ -915,11 +915,54 @@ async function load(){
 }
 function renderAll(){ renderKpis(); renderTable(); renderCal(); renderUpcoming(); }
 
+/* Standard equipment types (from the 39 Critical Equipment checklists). Shown as dropdown suggestions; you can still type a specific unit, e.g. "Generator (Genset) #2". */
+const EQUIPMENT_TYPES = [
+  "Generator (Genset)",
+  "Load Break Switch / VCB",
+  "Oil Transformer",
+  "Cast Resin / Dry-Type Transformer",
+  "Low Voltage Switchgear (LVSG)",
+  "Capacitor Bank",
+  "Motor Controls",
+  "Panel Boards",
+  "Bus Ducts & Plug-in Breakers",
+  "Lightning Protection System",
+  "Grounding System",
+  "Meter Center – Admin / Sub-meter",
+  "Meter Center – Utility",
+  "Transfer Pump",
+  "Booster Pump",
+  "Submersible Pump",
+  "Sump Pump",
+  "Sewage Ejector Pump",
+  "STP Submersible Pump",
+  "Fire Pump",
+  "Jockey Pump",
+  "Fire Detection & Alarm System (FDAS)",
+  "Public Address / Background Music (PA-BGM)",
+  "Elevator",
+  "Escalator",
+  "Gondola",
+  "Chiller",
+  "Chilled Water Pump (CHWP)",
+  "Condenser Water Pump (COWP)",
+  "AHU / FCU",
+  "Cooling Tower",
+  "Blower",
+  "Heat Exchanger",
+  "SPU",
+  "CCTV",
+  "Security Access Control",
+  "Water Tank",
+  "Seismograph / Accelerograph",
+  "Pool Pump"
+];
+
 function fillLists(){
   const cats = uniq([...(S.lists.Categories||[]), ...S.pms.map(p => p.Category)]);
   const per  = uniq([...(S.lists.Personnel||[]), ...S.pms.map(p => p.Assigned_To)]);
   const loc  = uniq([...(S.lists.Locations||[]), ...S.pms.map(p => p.Location)]);
-  const eq   = uniq([...S.pms.map(p => p.Equipment), ...S.contacts.map(c => c.Equipment)]);
+  const eq   = uniq([...EQUIPMENT_TYPES, ...(S.lists.Equipment_Types||[]), ...S.pms.map(p => p.Equipment), ...S.contacts.map(c => c.Equipment)]);
   const ems  = uniq([...S.contacts.flatMap(c => splitEmails(c.Emails)), ...S.pms.flatMap(p => splitEmails(p.Notify_Emails))].map(e => e.toLowerCase()));
   const opts = a => a.map(v => `<option value="${esc(v)}">`).join('');
   $('#dlCat').innerHTML = opts(cats); $('#dlPer').innerHTML = opts(per);
