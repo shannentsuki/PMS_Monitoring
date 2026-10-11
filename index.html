@@ -720,6 +720,7 @@ const TOKEN_KEY = 'pm_id_token';
 let TOKEN = localStorage.getItem(TOKEN_KEY) || '';
 let gisReady = false;
 function jwtExp(t){ try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; } catch(e){ return 0; } }
+function jwtEmail(t){ try { return String(JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).email || '').toLowerCase(); } catch(e){ return ''; } }
 function showLogin(msg, noAuto){
   busy(false);
   $('#login').classList.remove('hidden');
@@ -746,20 +747,12 @@ async function onCredential(resp){
   await enter();
 }
 async function enter(){
-  busy(true);
-  try {
-    S.me = await run('whoami');
-    document.documentElement.dataset.role = S.me.role.toLowerCase();
-    $('#userChip').innerHTML = `<b>${esc(S.me.name)}</b>${esc(S.me.email)}<span class="role-tag">${esc(S.me.role)}</span>`;
-    $('#userChip').classList.remove('hidden');
-    $('#login').classList.add('hidden');
-    if (S.view !== 'pm') setView('pm');
-    await load();
-  } catch(e){ busy(false); if (!e.code) toast(e.message || e, true); }
+  if (S.view !== 'pm') setView('pm');
+  await load();
 }
 function signOut(){
   try { google.accounts.id.disableAutoSelect(); } catch(e){}
-  TOKEN = ''; localStorage.removeItem(TOKEN_KEY); location.reload();
+  TOKEN = ''; localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(CACHE_KEY); location.reload();
 }
 
 /* ===== API call ===== */
@@ -784,10 +777,12 @@ async function run(fn, ...args){
     const err = new Error(data.error); err.code = data.code || '';
     if (err.code === 'AUTH' || err.code === 'DENIED'){
       TOKEN = ''; localStorage.removeItem(TOKEN_KEY);
+      if (err.code === 'DENIED') localStorage.removeItem(CACHE_KEY);
       showLogin(err.message, err.code === 'DENIED');
     }
     throw err;
   }
+  if (data.fresh) applyFresh(data.fresh);   // a save returns the new data in the same trip
   return data.result;
 }
 
@@ -905,22 +900,46 @@ function recipientsFor(p){
 }
 
 /* ===== Load & render ===== */
-async function load(){
-  busy(true);
-  try {
-    const d = await run('getData');
-    S.pms = d.pms; S.logs = d.logs; S.lists = d.lists; S.contacts = d.contacts || []; S.settings = d.settings || null;
-    fillLists(); renderAll();
-  } catch(e){ toast(e.message || e, true); return; }
-  finally { busy(false); }
-  prefetchAdmin();   // then quietly load the Admin-only tabs in the background, one after another
+/* ===== Instant start: show the last visit's data first, refresh quietly ===== */
+const CACHE_KEY = 'pm_cache_v1';
+function readCache(){
+  try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); return c && c.me && c.data ? c : null; }
+  catch(e){ return null; }
 }
-let prefetching = false;
-async function prefetchAdmin(){
-  if (prefetching || !S.me || S.me.role !== 'Admin') return;
-  prefetching = true;
-  try { await loadRequests(); await loadUsers(); await loadActivity(); }
-  finally { prefetching = false; }
+function writeCache(me, data){ try { localStorage.setItem(CACHE_KEY, JSON.stringify({me: me, data: data, t: Date.now()})); } catch(e){} }
+function applyMe(me){
+  S.me = me;
+  document.documentElement.dataset.role = me.role.toLowerCase();
+  $('#userChip').innerHTML = `<b>${esc(me.name)}</b>${esc(me.email)}<span class="role-tag">${esc(me.role)}</span>`;
+  $('#userChip').classList.remove('hidden');
+}
+function applyData(d){
+  S.pms = d.pms; S.logs = d.logs; S.lists = d.lists; S.contacts = d.contacts || []; S.settings = d.settings || null;
+  fillLists(); renderAll();
+}
+// data that came back together with a save (no second request needed)
+function applyFresh(f){
+  if (f.pms) S.pms = f.pms;
+  if (f.logs) S.logs = f.logs;
+  if (f.contacts) S.contacts = f.contacts;
+  S.changesStale = true;
+  fillLists(); renderAll();
+  if (S.me) writeCache(S.me, {pms: S.pms, logs: S.logs, lists: S.lists, contacts: S.contacts, settings: S.settings});
+}
+async function load(){
+  if (!S.showingCache) busy(true);          // when the saved copy is on screen, don't block it with a spinner
+  try {
+    const b = await run('boot');
+    applyMe(b.me); applyData(b.data);
+    if (b.admin){
+      S.users = b.admin.users; S.requests = b.admin.requests; S.changes = b.admin.changes;
+      S.actAt = S.usrAt = Date.now(); S.changesStale = false;
+      updateReqBadge(); renderReqBox(); if (S.view === 'users' || S.view === 'activity') renderTable();
+    }
+    writeCache(b.me, b.data);
+    $('#login').classList.add('hidden');
+  } catch(e){ if (!e.code) toast(e.message || e, true); }
+  finally { busy(false); S.showingCache = false; }
 }
 function renderAll(){ renderKpis(); renderTable(); renderCal(); renderUpcoming(); }
 
@@ -1144,8 +1163,9 @@ function setView(v){
   document.querySelectorAll('.users-only').forEach(el => el.classList.toggle('hidden', v !== 'users'));
   renderTable();
   renderReqBox();
-  if (v === 'activity') loadActivity();
-  if (v === 'users'){ loadUsers(); loadRequests(); }
+  const old = t => Date.now() - (t || 0) > 60000;
+  if (v === 'activity' && (S.changesStale || old(S.actAt))) loadActivity();
+  if (v === 'users' && old(S.usrAt)){ loadUsers(); loadRequests(); }
 }
 
 /* ===== Export to Excel (exports exactly what's shown: current tab + search/filters/sort) ===== */
@@ -1355,7 +1375,7 @@ async function sendTest(){
 
 /* ===== Access requests (Admin) ===== */
 async function loadRequests(){
-  try { S.requests = await run('getAccessRequests'); updateReqBadge(); renderReqBox(); }
+  try { S.requests = await run('getAccessRequests'); S.usrAt = Date.now(); updateReqBadge(); renderReqBox(); }
   catch(e){ if (!e.code) toast(e.message || e, true); }
 }
 function updateReqBadge(){
@@ -1398,11 +1418,11 @@ async function declineReq(i){
 
 /* ===== Activity log & users (Admin) ===== */
 async function loadActivity(){
-  try { S.changes = await run('getChangeLog'); if (S.view === 'activity') renderTable(); }
+  try { S.changes = await run('getChangeLog'); S.actAt = Date.now(); S.changesStale = false; if (S.view === 'activity') renderTable(); }
   catch(e){ if (!e.code) toast(e.message || e, true); }
 }
 async function loadUsers(){
-  try { S.users = await run('getUsers'); if (S.view === 'users') renderTable(); }
+  try { S.users = await run('getUsers'); S.usrAt = Date.now(); if (S.view === 'users') renderTable(); }
   catch(e){ if (!e.code) toast(e.message || e, true); }
 }
 function openUser(i){
@@ -1549,7 +1569,7 @@ async function submitForm(e){
     const id = await run('savePM', d);
     closeModal('formModal');
     toast(isNew ? 'Saved as ' + id : 'Saved');
-    await load();
+    busy(false);
   }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
@@ -1557,7 +1577,7 @@ async function delPM(id){
   const p = S.pms.find(x => x.PM_ID === id);
   if (!confirm(`Delete ${id} – ${p ? p.Equipment : ''}?\nIts history log will be kept.`)) return;
   busy(true);
-  try { await run('deletePM', id); toast('Deleted'); await load(); }
+  try { await run('deletePM', id); toast('Deleted'); busy(false); }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 
@@ -1576,7 +1596,7 @@ async function submitContact(e){
   e.preventDefault();
   const d = formData(e.target);   // Reminders_On is "On" when checked, missing when unchecked
   busy(true);
-  try { await run('saveContact', d); closeModal('contactModal'); toast('Contact saved'); await load(); }
+  try { await run('saveContact', d); closeModal('contactModal'); toast('Contact saved'); busy(false); }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 async function toggleContact(i, el){
@@ -1594,7 +1614,7 @@ async function delContact(i){
   const c = S.contacts[i]; if (!c) return;
   if (!confirm(`Remove reminder contacts for "${c.Equipment}"?`)) return;
   busy(true);
-  try { await run('deleteContact', c.Equipment); toast('Contact removed'); await load(); }
+  try { await run('deleteContact', c.Equipment); toast('Contact removed'); busy(false); }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 
@@ -1618,7 +1638,7 @@ async function submitDone(e){
     d.Findings = `Checklist ${boxes.length - un.length}/${boxes.length} done${un.length ? ' (not done: ' + un.join('; ') + ')' : ''}. ` + (d.Findings || '');
   }
   busy(true);
-  try { const next = await run('completePM', id, d); closeModal('doneModal'); toast('Done! Next due ' + nice(next)); await load(); }
+  try { const next = await run('completePM', id, d); closeModal('doneModal'); toast('Done! Next due ' + nice(next)); busy(false); }
   catch(err){ toast(err.message || err, true); busy(false); }
 }
 
@@ -1639,7 +1659,14 @@ function toast(msg, err){
   document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
   renderThemeBtn();
   renderConn();
-  if (TOKEN && jwtExp(TOKEN) > Date.now() + 30000) enter(); else showLogin();
+  if (TOKEN && jwtExp(TOKEN) > Date.now() + 30000){
+    const c = readCache();
+    if (c && c.me.email === jwtEmail(TOKEN)){      // same person as last time: show their data instantly
+      S.showingCache = true; applyMe(c.me); applyData(c.data);
+      $('#login').classList.add('hidden');
+    }
+    enter();
+  } else showLogin();
 })();
 </script>
 </body>
