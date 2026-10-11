@@ -15,6 +15,7 @@
     document.documentElement.setAttribute('data-theme', t);
   })();
 </script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --maroon:#800000;--burgundy:#800020;--wine:#5c0a1e;--deep:#3d0612;
@@ -207,6 +208,27 @@ box-shadow:0 2px 8px var(--shadow);transition:transform .15s}
 .theme-btn:hover{transform:scale(1.08)}
 html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
 
+/* ===== sign-in, roles, activity ===== */
+html[data-role="viewer"] .need-editor,
+html:not([data-role="admin"]) .need-admin{display:none!important}
+.tabs{flex-wrap:wrap}
+.login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:linear-gradient(120deg,var(--deep),var(--burgundy) 55%,var(--maroon))}
+.login-box{background:var(--surface);color:var(--ink);border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.login-box h2{margin:0 0 4px;color:var(--heading)}
+.login-box p{margin:0 0 18px;color:var(--muted);font-size:13px}
+#gBtn{display:flex;justify-content:center;min-height:44px}
+.login-msg{margin-top:14px;color:var(--bad);font-size:13px;font-weight:600}
+.user-chip{font-size:12px;color:#fff;opacity:.92;align-self:center;text-align:right;line-height:1.3}
+.user-chip b{display:block;font-size:13px}
+.role-tag{display:inline-block;font-size:10px;font-weight:700;background:rgba(255,255,255,.2);padding:0 7px;border-radius:999px;margin-left:4px}
+.changes-pre{white-space:pre-wrap;word-break:break-word;font:11.5px Consolas,monospace;background:var(--tint);border-radius:8px;padding:8px;margin:4px 0 0;max-height:220px;overflow:auto}
+details.chg summary{cursor:pointer;color:var(--accent);font-size:11.5px;margin-top:4px}
+.b-Create,.b-Complete{background:#e3f3ea;color:#2e7d4f}.b-Edit,.b-Update,.b-Toggle{background:#fff3d6;color:#8a6200}.b-Delete{background:#fde2e6;color:#b3001b}
+html[data-theme="dark"] .b-Create,html[data-theme="dark"] .b-Complete{background:#16351f;color:#7fd8a2}
+html[data-theme="dark"] .b-Edit,html[data-theme="dark"] .b-Update,html[data-theme="dark"] .b-Toggle{background:#3f3210;color:#f3d27a}
+html[data-theme="dark"] .b-Delete{background:#4a1520;color:#ff98a6}
+
 /* ================= PHONE / SMALL SCREENS ================= */
 @media(max-width:700px){
   header{padding:12px 14px;gap:8px}
@@ -267,11 +289,22 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
 </head>
 <body>
 
+<div class="login" id="login">
+  <div class="login-box">
+    <h2>PMS Monitoring</h2>
+    <p>Sign in with your Google account to continue.</p>
+    <div id="gBtn"></div>
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
 <header>
   <div><h1>PMS Monitoring</h1><small>Preventive Maintenance Schedule Tracking</small></div>
   <div class="hdr-actions">
+    <div class="user-chip hidden" id="userChip"></div>
     <button class="btn btn-outline" onclick="load()">↻ Refresh</button>
-    <button class="btn btn-light" onclick="openForm()">+ New PM</button>
+    <button class="btn btn-light need-editor" onclick="openForm()">+ New PM</button>
+    <button class="btn btn-outline" onclick="signOut()">Sign out</button>
   </div>
 </header>
 
@@ -282,8 +315,10 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
     <div class="tabs">
       <div class="tab active" data-view="pm" onclick="setView('pm')">Schedules</div>
       <div class="tab" data-view="log" onclick="setView('log')">History</div>
-      <div class="tab" data-view="contacts" onclick="setView('contacts')">Contacts</div>
-      <div class="tab" data-view="email" onclick="setView('email')">Email</div>
+      <div class="tab need-editor" data-view="contacts" onclick="setView('contacts')">Contacts</div>
+      <div class="tab need-admin" data-view="email" onclick="setView('email')">Email</div>
+      <div class="tab need-admin" data-view="activity" onclick="setView('activity')">Activity</div>
+      <div class="tab need-admin" data-view="users" onclick="setView('users')">Users</div>
     </div>
     <div class="filters" id="filters">
       <input id="q" placeholder="Search equipment, task, tag, person, email…" oninput="renderTable()" style="flex:1;min-width:200px">
@@ -294,6 +329,7 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
       <select id="fCat" class="pm-only" onchange="renderTable()"></select>
       <select id="fFreq" class="pm-only" onchange="renderTable()"></select>
       <button class="btn btn-primary contacts-only hidden" onclick="openContact(-1)">+ Add Contact</button>
+      <button class="btn btn-primary users-only hidden" onclick="openUser(-1)">+ Add User</button>
       <button class="btn btn-ghost" onclick="exportView()" title="Download what's shown (with current search/filters) as an Excel file">⬇ Export to Excel</button>
     </div>
     <div class="table-wrap" id="tableWrap"><table id="tbl"></table></div>
@@ -479,6 +515,26 @@ html[data-theme="dark"] .theme-btn{background:#f2b6c3;color:#3d0612}
   </div>
 </div>
 
+<!-- User modal (Admin) -->
+<div class="modal-bg hidden" id="userModal">
+  <div class="modal modal-sm">
+    <div class="modal-head"><h2 id="userTitle">Add User</h2><button class="x" onclick="closeModal('userModal')">×</button></div>
+    <form id="userForm" onsubmit="submitUser(event)">
+      <div class="grid2">
+        <label class="full">Google email *<input type="email" name="Email" required placeholder="name@gmail.com"></label>
+        <label class="full">Name (optional)<input name="Name"></label>
+        <label>Role<select name="Role"><option>Viewer</option><option>Editor</option><option>Admin</option></select></label>
+        <label>Access<select name="Active"><option value="Yes">Active</option><option value="No">Disabled</option></select></label>
+      </div>
+      <p class="muted small" style="margin:10px 0 0"><b>Viewer</b>: see schedules and history. <b>Editor</b>: also add/edit PMs, mark done, manage contacts. <b>Admin</b>: also email settings, users and the activity log.</p>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('userModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Web App URL modal -->
 <div class="modal-bg hidden" id="urlModal">
   <div class="modal modal-sm">
@@ -583,6 +639,53 @@ async function resetUrl(){
   await load();
 }
 
+/* ===== Google sign-in ===== */
+const GOOGLE_CLIENT_ID = '661212448719-7po6fh2jusfgb6vk4e54h1agan90av14.apps.googleusercontent.com';
+const TOKEN_KEY = 'pm_id_token';
+let TOKEN = localStorage.getItem(TOKEN_KEY) || '';
+let gisReady = false;
+function jwtExp(t){ try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; } catch(e){ return 0; } }
+function showLogin(msg, noAuto){
+  busy(false);
+  $('#login').classList.remove('hidden');
+  $('#loginMsg').textContent = msg || '';
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('PASTE') === 0){
+    $('#loginMsg').textContent = 'Google sign-in is not set up yet. Add your Client ID to index.html (GOOGLE_CLIENT_ID).';
+    return;
+  }
+  const go = () => {
+    if (!(window.google && google.accounts && google.accounts.id)) return setTimeout(go, 300);
+    if (!gisReady){
+      google.accounts.id.initialize({client_id: GOOGLE_CLIENT_ID, callback: onCredential, auto_select: true, cancel_on_tap_outside: false});
+      gisReady = true;
+    }
+    $('#gBtn').innerHTML = '';
+    google.accounts.id.renderButton($('#gBtn'), {theme:'filled_blue', size:'large', shape:'pill', text:'signin_with'});
+    if (noAuto) google.accounts.id.disableAutoSelect(); else google.accounts.id.prompt();
+  };
+  go();
+}
+async function onCredential(resp){
+  TOKEN = resp.credential; localStorage.setItem(TOKEN_KEY, TOKEN);
+  await enter();
+}
+async function enter(){
+  busy(true);
+  try {
+    S.me = await run('whoami');
+    document.documentElement.dataset.role = S.me.role.toLowerCase();
+    $('#userChip').innerHTML = `<b>${esc(S.me.name)}</b>${esc(S.me.email)}<span class="role-tag">${esc(S.me.role)}</span>`;
+    $('#userChip').classList.remove('hidden');
+    $('#login').classList.add('hidden');
+    if (S.view !== 'pm') setView('pm');
+    await load();
+  } catch(e){ busy(false); if (!e.code) toast(e.message || e, true); }
+}
+function signOut(){
+  try { google.accounts.id.disableAutoSelect(); } catch(e){}
+  TOKEN = ''; localStorage.removeItem(TOKEN_KEY); location.reload();
+}
+
 /* ===== API call ===== */
 async function run(fn, ...args){
   const url = getApiUrl();
@@ -593,7 +696,7 @@ async function run(fn, ...args){
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
-      body: JSON.stringify({ action: fn, args: args })
+      body: JSON.stringify({ action: fn, args: args, token: TOKEN })
     });
     data = await res.json();
   } catch (e) {
@@ -601,7 +704,14 @@ async function run(fn, ...args){
     throw new Error(CONN.msg);
   }
   setConn('ok');
-  if (!data.ok) throw new Error(data.error);
+  if (!data.ok){
+    const err = new Error(data.error); err.code = data.code || '';
+    if (err.code === 'AUTH' || err.code === 'DENIED'){
+      TOKEN = ''; localStorage.removeItem(TOKEN_KEY);
+      showLogin(err.message, err.code === 'DENIED');
+    }
+    throw err;
+  }
   return data.result;
 }
 
@@ -672,7 +782,7 @@ function emailHtml(bodyTpl, v, appUrl){
 }
 
 /* ===== State & utils ===== */
-const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], settings:null, tplDirty:false, lastField:null,
+const S = {pms:[], logs:[], lists:{}, contacts:[], missing:[], me:null, changes:[], users:[], settings:null, tplDirty:false, lastField:null,
   lastRows:[], view:'pm', sort:{key:'Next_Due', dir:1},
   cal:new Date(new Date().getFullYear(), new Date().getMonth(), 1), sel:null, calMap:{}};
 const $ = s => document.querySelector(s);
@@ -819,7 +929,7 @@ function renderTable(){
       td('', `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>
         <button class="ic" title="Edit" onclick="openForm('${esc(p.PM_ID)}')">✎</button>
         <button class="ic" title="Duplicate (copy to a new PM)" onclick="duplicatePM('${esc(p.PM_ID)}')">⧉</button>
-        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions') +
+        <button class="ic del" title="Delete" onclick="delPM('${esc(p.PM_ID)}')">🗑</button>`, 'actions need-editor') +
       '</tr>').join('') + '</tbody>';
   } else if (S.view === 'log'){
     rows = S.logs.map(l => Object.assign({_ot: !l.Due_Date ? '—' : (l.Date_Done <= l.Due_Date ? 'On time' : 'Late')}, l))
@@ -836,6 +946,33 @@ function renderTable(){
       td('Downtime', l.Downtime_Hrs !== '' && l.Downtime_Hrs != null ? esc(l.Downtime_Hrs) + ' h' : '—') +
       td('Cost', l.Cost !== '' && l.Cost != null ? '₱' + Number(l.Cost).toLocaleString() : '—') +
       td('Timeliness', l._ot === '—' ? '—' : `<span class="badge b-${slug(l._ot)}">${l._ot}</span>`) +
+      '</tr>').join('') + '</tbody>';
+  } else if (S.view === 'activity'){
+    rows = (S.changes || []).filter(c => !q || [c.User_Email,c.User_Name,c.Action,c.Entity,c.Entity_ID,c.Summary].join(' ').toLowerCase().includes(q));
+    sortRows(rows);
+    const cols = [['Changed_At','When'],['User_Email','Who'],['Action','Action'],['Entity','What'],['Summary','Details']];
+    $('#tbl').innerHTML = head(cols) + '<tbody>' + rows.map(c => '<tr>' +
+      td('When', esc(c.Changed_At)) +
+      td('Who', `<b>${esc(c.User_Name || c.User_Email)}</b><div class="sub">${esc(c.User_Email)}</div>`) +
+      td('Action', `<span class="badge b-${esc(c.Action)}">${esc(c.Action)}</span>`) +
+      td('What', `${esc(c.Entity)}<div class="sub mono">${esc(c.Entity_ID)}</div>`) +
+      td('Details', esc(c.Summary) + ((c.Before || c.After) ? `<details class="chg"><summary>Before / after</summary>` +
+        (c.Before ? `<div class="sub">Before</div><pre class="changes-pre">${esc(c.Before)}</pre>` : '') +
+        (c.After ? `<div class="sub">After</div><pre class="changes-pre">${esc(c.After)}</pre>` : '') + `</details>` : '')) +
+      '</tr>').join('') + '</tbody>';
+  } else if (S.view === 'users'){
+    rows = (S.users || []).map((u, i) => Object.assign({_i: i}, u))
+      .filter(u => !q || [u.Email, u.Name, u.Role].join(' ').toLowerCase().includes(q));
+    sortRows(rows);
+    const cols = [['Email','Google email'],['Name','Name'],['Role','Role'],['Active','Access'],['Last_Login_At','Last sign-in']];
+    $('#tbl').innerHTML = head(cols, true) + '<tbody>' + rows.map(u => `<tr class="${u.Active === 'No' ? 'st-rem-off' : 'st-rem-on'}">` +
+      td('Email', `<b>${esc(u.Email)}</b>`) +
+      td('Name', esc(u.Name || '—')) +
+      td('Role', esc(u.Role)) +
+      td('Access', u.Active === 'No' ? '<span class="badge b-Inactive">Disabled</span>' : '<span class="badge b-On-time">Active</span>') +
+      td('Last sign-in', esc(u.Last_Login_At || '—')) +
+      td('', `<button class="ic" title="Edit" onclick="openUser(${u._i})">✎</button>
+        <button class="ic del" title="Remove" onclick="delUser(${u._i})">🗑</button>`, 'actions') +
       '</tr>').join('') + '</tbody>';
   } else {
     const paused = new Set(pausedList());
@@ -871,12 +1008,16 @@ function renderTable(){
 }
 
 function setView(v){
-  if (S.view !== v) S.sort = v === 'pm' ? {key:'Next_Due', dir:1} : v === 'log' ? {key:'Date_Done', dir:-1} : {key:'Equipment', dir:1};
+  if (S.view !== v) S.sort = v === 'pm' ? {key:'Next_Due', dir:1} : v === 'log' ? {key:'Date_Done', dir:-1}
+    : v === 'activity' ? {key:'Changed_At', dir:-1} : v === 'users' ? {key:'Email', dir:1} : {key:'Equipment', dir:1};
   S.view = v;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
   document.querySelectorAll('.pm-only').forEach(el => el.classList.toggle('hidden', v !== 'pm'));
   document.querySelectorAll('.contacts-only').forEach(el => el.classList.toggle('hidden', v !== 'contacts'));
+  document.querySelectorAll('.users-only').forEach(el => el.classList.toggle('hidden', v !== 'users'));
   renderTable();
+  if (v === 'activity') loadActivity();
+  if (v === 'users') loadUsers();
 }
 
 /* ===== Export to Excel (exports exactly what's shown: current tab + search/filters/sort) ===== */
@@ -898,6 +1039,14 @@ function exportSpec(){
     ['Due Date', r => r.Due_Date], ['Date Done', r => r.Date_Done], ['Timeliness', r => r._ot === '—' ? '' : r._ot],
     ['Performed By', r => r.Performed_By], ['Findings', r => r.Findings], ['Action Taken', r => r.Action_Taken],
     ['Downtime (hrs)', r => num(r.Downtime_Hrs)], ['Cost (PHP)', r => num(r.Cost)]
+  ]};
+  if (S.view === 'activity') return { name: 'Activity', rows: S.lastRows, cols: [
+    ['When', r => r.Changed_At], ['User', r => r.User_Email], ['Action', r => r.Action],
+    ['Type', r => r.Entity], ['ID', r => r.Entity_ID], ['Summary', r => r.Summary]
+  ]};
+  if (S.view === 'users') return { name: 'Users', rows: S.lastRows, cols: [
+    ['Email', r => r.Email], ['Name', r => r.Name], ['Role', r => r.Role],
+    ['Access', r => r.Active === 'No' ? 'Disabled' : 'Active'], ['Last sign-in', r => r.Last_Login_At]
   ]};
   return { name: 'Contacts', rows: S.lastRows, cols: [
     ['Equipment', r => r.Equipment], ['Reminder Emails', r => r.Emails],
@@ -1076,6 +1225,41 @@ async function sendTest(){
   finally { busy(false); }
 }
 
+/* ===== Activity log & users (Admin) ===== */
+async function loadActivity(){
+  try { S.changes = await run('getChangeLog'); if (S.view === 'activity') renderTable(); }
+  catch(e){ if (!e.code) toast(e.message || e, true); }
+}
+async function loadUsers(){
+  try { S.users = await run('getUsers'); if (S.view === 'users') renderTable(); }
+  catch(e){ if (!e.code) toast(e.message || e, true); }
+}
+function openUser(i){
+  const f = $('#userForm'); f.reset();
+  const u = i >= 0 ? S.users[i] : null;
+  $('#userTitle').textContent = u ? 'Edit User' : 'Add User';
+  f.elements.Email.value = u ? u.Email : ''; f.elements.Email.readOnly = !!u;
+  f.elements.Name.value = u ? (u.Name || '') : '';
+  f.elements.Role.value = u ? u.Role : 'Viewer';
+  f.elements.Active.value = u && u.Active === 'No' ? 'No' : 'Yes';
+  openModal('userModal');
+}
+async function submitUser(e){
+  e.preventDefault();
+  busy(true);
+  try { await run('saveUser', formData(e.target)); closeModal('userModal'); toast('User saved'); S.users = await run('getUsers'); renderTable(); }
+  catch(err){ toast(err.message || err, true); }
+  finally { busy(false); }
+}
+async function delUser(i){
+  const u = S.users[i]; if (!u) return;
+  if (!confirm(`Remove ${u.Email}?\nThey will no longer be able to open the app.`)) return;
+  busy(true);
+  try { await run('deleteUser', u.Email); toast('User removed'); S.users = await run('getUsers'); renderTable(); }
+  catch(err){ toast(err.message || err, true); }
+  finally { busy(false); }
+}
+
 /* ===== Calendar ===== */
 function occurrences(from, to){
   const out = [];
@@ -1120,7 +1304,7 @@ function item(p, date, actionable){
   const od = date < today();
   return `<div class="item ${od ? 'od' : ''}"><div><b>${esc(p.Equipment)}</b><div class="sub">${esc(p.Task)}</div>
     <div class="sub">${od ? 'Overdue since ' + nice(date) : nice(date)}${p.Assigned_To ? ' · ' + esc(p.Assigned_To) : ''}</div></div>
-    ${actionable ? `<button class="ic ok" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>` : ''}</div>`;
+    ${actionable ? `<button class="ic ok need-editor" title="Mark as done" onclick="openDone('${esc(p.PM_ID)}')">✓</button>` : ''}</div>`;
 }
 function renderDayList(){
   const box = $('#dayList');
@@ -1284,7 +1468,7 @@ function toast(msg, err){
   document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
   renderThemeBtn();
   renderConn();
-  load();
+  if (TOKEN && jwtExp(TOKEN) > Date.now() + 30000) enter(); else showLogin();
 })();
 </script>
 </body>
